@@ -5,35 +5,32 @@ using Xunit;
 
 namespace NGIS.Tests {
   public class MsgSerializerArrayAndStringTests {
-
     [Theory]
     [InlineData("Hello World!")]
     [InlineData("Привет, мир!")]
     public void ShouldSerializeAndDeserializeString(string value) {
       var buf = new byte[MsgSerializer.SizeOf(value)];
-      var index = 0;
-      MsgSerializer.WriteString(value, buf, ref index);
+      MsgSerializer.WriteString(value, buf, 0);
 
-      index = 0;
-      var deserialized = MsgSerializer.ReadString(buf, ref index);
+      var offset = 0;
+      var deserialized = MsgSerializer.ReadString(buf, ref offset);
 
       Assert.True(value == deserialized, $"'{value}' != '{deserialized}'");
     }
 
     [Fact]
     public void ShouldThrowOnNullStringSerialization() {
-      var buf = Array.Empty<byte>();
-      var index = 0;
-      Assert.Throws<ArgumentNullException>(() => MsgSerializer.WriteString(null, buf, ref index));
+      Assert.Throws<NullReferenceException>(() => {
+        MsgSerializer.WriteString(null, Array.Empty<byte>(), 0);
+      });
     }
 
     [Fact]
     public void ShouldThrowOnVeryLongString() {
-      var buf = Array.Empty<byte>();
-      var longString = new string('F', MsgSerializer.MaxStringLength + 1);
-      var index = 0;
-
-      Assert.Throws<OverflowException>(() => MsgSerializer.WriteString(longString, buf, ref index));
+      Assert.Throws<OverflowException>(() => {
+        const int size = MsgSerializer.MaxStringLength;
+        MsgSerializer.WriteString(new string('A', size + 1), new byte[size + 2], 0);
+      });
     }
 
     [Theory]
@@ -43,11 +40,10 @@ namespace NGIS.Tests {
     public void ShouldSerializeAndDeserializeStringArray(string item, int count) {
       var value = Enumerable.Repeat(item, count).ToArray();
       var buf = new byte[MsgSerializer.SizeOf(value)];
-      var index = 0;
-      MsgSerializer.WriteStringArray(value, buf, ref index);
+      MsgSerializer.WriteStringArray(value, buf, 0);
 
-      index = 0;
-      var deserialized = MsgSerializer.ReadStringArray(buf, ref index);
+      var offset = 0;
+      var deserialized = MsgSerializer.ReadStringArray(buf, ref offset);
 
       Assert.True(value.Length == deserialized.Length, "Length mismatch");
 
@@ -57,11 +53,10 @@ namespace NGIS.Tests {
 
     [Fact]
     public void ShouldThrowOnVeryLongStringArray() {
-      var longArray = Enumerable.Repeat("0", MsgSerializer.MaxArrayLength + 1).ToArray();
-      var buf = Array.Empty<byte>();
-      var index = 0;
-
-      Assert.Throws<OverflowException>(() => MsgSerializer.WriteStringArray(longArray, buf, ref index));
+      Assert.Throws<OverflowException>(() => {
+        var longArray = Enumerable.Repeat("0", MsgSerializer.MaxArrayLength + 1).ToArray();
+        MsgSerializer.WriteStringArray(longArray, Array.Empty<byte>(), 0);
+      });
     }
 
     [Theory]
@@ -70,11 +65,10 @@ namespace NGIS.Tests {
     public void ShouldSerializeAndDeserializeInt32Array(int item, int count) {
       var value = Enumerable.Repeat(item, count).ToArray();
       var buffer = new byte[MsgSerializer.SizeOf(value)];
-      var index = 0;
-      MsgSerializer.WriteInt32Array(value, buffer, ref index);
+      MsgSerializer.WriteInt32Array(value, buffer, 0);
 
-      index = 0;
-      var deserialized = MsgSerializer.ReadInt32Array(buffer, ref index);
+      var offset = 0;
+      var deserialized = MsgSerializer.ReadInt32Array(buffer, ref offset);
 
       Assert.True(value.Length == deserialized.Length, "Length mismatch");
 
@@ -84,11 +78,10 @@ namespace NGIS.Tests {
 
     [Fact]
     public void ShouldThrowOnVeryLongInt32Array() {
-      var longArray = Enumerable.Repeat(16, MsgSerializer.MaxArrayLength + 1).ToArray();
-      var buf = Array.Empty<byte>();
-      var index = 0;
-
-      Assert.Throws<OverflowException>(() => MsgSerializer.WriteInt32Array(longArray, buf, ref index));
+      Assert.Throws<OverflowException>(() => {
+        var longArray = Enumerable.Repeat(16, MsgSerializer.MaxArrayLength + 1).ToArray();
+        MsgSerializer.WriteInt32Array(longArray, Array.Empty<byte>(), 0);
+      });
     }
   }
 }

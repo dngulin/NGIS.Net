@@ -37,52 +37,57 @@ namespace NGIS.Serialization {
         throw new MsgSerializerException($"MsgId mismatch: {actualId} != {msgId}");
     }
 
-    public static void WriteHeader(int msgLength, byte msgId, byte[] buffer, ref int offset) {
-      if (msgLength < HeaderLength || msgLength > ushort.MaxValue)
+    public static int WriteHeader(int dataSize, byte msgId, byte[] buffer, int offset) {
+      var msgSize = HeaderLength + dataSize;
+
+      if (msgSize < HeaderLength || msgSize > ushort.MaxValue)
         throw new MsgSerializerException("Wrong message length");
 
-      WriteUInt16(checked((ushort) msgLength), buffer, ref offset);
-      WriteByte(msgId, buffer, ref offset);
+      var written = 0;
+      written += WriteUInt16(checked((ushort) msgSize), buffer, offset);
+      written += WriteByte(msgId, buffer, offset + written);
+      return written;
     }
 
     public static byte ReadByte(byte[] buffer, ref int offset) {
       return buffer[offset++];
     }
 
-    public static void WriteByte(byte value, byte[] buffer, ref int offset) {
-      buffer[offset++] = value;
+    public static int WriteByte(byte value, byte[] buffer, int offset) {
+      buffer[offset] = value;
+      return sizeof(byte);
     }
 
     public static ushort ReadUInt16(byte[] buffer, ref int offset) {
       return checked((ushort) ReadBigEndian<ushort>(buffer, ref offset));
     }
 
-    public static void WriteUInt16(ushort value, byte[] buffer, ref int offset) {
-      WriteBigEndian<ushort>(value, buffer, ref offset);
+    public static int WriteUInt16(ushort value, byte[] buffer, int offset) {
+      return WriteBigEndian<ushort>(value, buffer, offset);
     }
 
     public static uint ReadUInt32(byte[] buffer, ref int offset) {
       return (uint) ReadBigEndian<uint>(buffer, ref offset);
     }
 
-    public static void WriteUInt32(uint value, byte[] buffer, ref int offset) {
-      WriteBigEndian<uint>(value, buffer, ref offset);
+    public static int WriteUInt32(uint value, byte[] buffer, int offset) {
+      return WriteBigEndian<uint>(value, buffer, offset);
     }
 
     public static int ReadInt32(byte[] buffer, ref int offset) {
       return (int) ReadBigEndian<int>(buffer, ref offset);
     }
 
-    public static void WriteInt32(int value, byte[] buffer, ref int offset) {
-      WriteBigEndian<int>((ulong) value, buffer, ref offset);
+    public static int WriteInt32(int value, byte[] buffer, int offset) {
+      return WriteBigEndian<int>((ulong) value, buffer, offset);
     }
 
     public static ulong ReadUInt64(byte[] buffer, ref int offset) {
       return ReadBigEndian<ulong>(buffer, ref offset);
     }
 
-    public static void WriteUInt64(ulong value, byte[] buffer, ref int offset) {
-      WriteBigEndian<ulong>(value, buffer, ref offset);
+    public static int WriteUInt64(ulong value, byte[] buffer, int offset) {
+      return WriteBigEndian<ulong>(value, buffer, offset);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -97,10 +102,13 @@ namespace NGIS.Serialization {
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static unsafe void WriteBigEndian<T>(ulong value, byte[] buffer, ref int offset) where T : unmanaged {
+    private static unsafe int WriteBigEndian<T>(ulong value, byte[] buffer, int offset) where T : unmanaged {
       var size = sizeof(T);
+
       for (var i = 1; i <= size; i++)
         buffer[offset++] = (byte) (value >> ((size - i) * 8));
+
+      return size;
     }
 
     public static string ReadString(byte[] buffer, ref int offset) {
@@ -110,15 +118,11 @@ namespace NGIS.Serialization {
       return value;
     }
 
-    public static void WriteString(string value, byte[] buffer, ref int offset) {
-      var length = Encoding.UTF8.GetByteCount(value);
-      WriteByte(checked((byte) length), buffer, ref offset);
-
-      var written = Encoding.UTF8.GetBytes(value, 0, value.Length, buffer, offset);
-      offset += written;
-
-      if (written != length)
-        throw new MsgSerializerException("Not enough space to serialize the string!");
+    public static int WriteString(string value, byte[] buffer, int offset) {
+      var written = 0;
+      written += Encoding.UTF8.GetBytes(value, 0, value.Length, buffer, offset + sizeof(byte));
+      written += WriteByte(checked((byte) written), buffer, offset);
+      return written;
     }
 
     public static uint[] ReadUInt32Array(byte[] buffer, ref int offset) {
@@ -127,9 +131,12 @@ namespace NGIS.Serialization {
       return array;
     }
 
-    public static void WriteUInt32Array(uint[] values, byte[] buffer, ref int offset) {
-      WriteByte(checked((byte) values.Length), buffer, ref offset);
-      foreach (var value in values) WriteUInt32(value, buffer, ref offset);
+    public static int WriteUInt32Array(uint[] values, byte[] buffer, int offset) {
+      var written = 0;
+      written += WriteByte(checked((byte) values.Length), buffer, offset);
+      foreach (var value in values)
+        written += WriteUInt32(value, buffer, offset + written);
+      return written;
     }
 
     public static int[] ReadInt32Array(byte[] buffer, ref int offset) {
@@ -138,9 +145,12 @@ namespace NGIS.Serialization {
       return array;
     }
 
-    public static void WriteInt32Array(int[] values, byte[] buffer, ref int offset) {
-      WriteByte(checked((byte) values.Length), buffer, ref offset);
-      foreach (var value in values) WriteInt32(value, buffer, ref offset);
+    public static int WriteInt32Array(int[] values, byte[] buffer, int offset) {
+      var written = 0;
+      written += WriteByte(checked((byte) values.Length), buffer, offset);
+      foreach (var value in values)
+        written += WriteInt32(value, buffer, offset + written);
+      return written;
     }
 
     public static string[] ReadStringArray(byte[] buffer, ref int offset) {
@@ -149,9 +159,12 @@ namespace NGIS.Serialization {
       return array;
     }
 
-    public static void WriteStringArray(string[] values, byte[] buffer, ref int offset) {
-      WriteByte(checked((byte) values.Length), buffer, ref offset);
-      foreach (var value in values) WriteString(value, buffer, ref offset);
+    public static int WriteStringArray(string[] values, byte[] buffer, int offset) {
+      var written = 0;
+      written += WriteByte(checked((byte) values.Length), buffer, offset);
+      foreach (var value in values)
+        written += WriteString(value, buffer, offset + written);
+      return written;
     }
 
     public static int SizeOf(string value) => sizeof(byte) + Encoding.UTF8.GetByteCount(value);

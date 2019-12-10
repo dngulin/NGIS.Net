@@ -7,9 +7,7 @@ namespace NGIS.Message.Server {
     public int GetSerializedSize() => MsgSerializer.HeaderLength;
 
     public int WriteTo(byte[] buffer, int offset) {
-      var msgSize = GetSerializedSize();
-      MsgSerializer.WriteHeader(msgSize, MsgId, buffer, ref offset);
-      return msgSize;
+      return MsgSerializer.WriteHeader(0, MsgId, buffer, offset);
     }
   }
 }

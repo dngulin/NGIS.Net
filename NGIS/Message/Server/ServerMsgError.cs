@@ -29,10 +29,13 @@ namespace NGIS.Message.Server {
     }
 
     public int WriteTo(byte[] buffer, int offset) {
-      var msgSize = GetSerializedSize();
-      MsgSerializer.WriteHeader(msgSize, MsgId, buffer, ref offset);
-      MsgSerializer.WriteByte((byte) ErrorId, buffer, ref offset);
-      return msgSize;
+      var dataOffset = offset + MsgSerializer.HeaderLength;
+      var written = 0;
+
+      written += MsgSerializer.WriteByte((byte) ErrorId, buffer, dataOffset);
+      written += MsgSerializer.WriteHeader(written, MsgId, buffer, offset);
+
+      return written;
     }
   }
 }
