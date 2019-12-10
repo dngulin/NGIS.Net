@@ -49,9 +49,6 @@ namespace NGIS.Pipe {
     }
 
     protected void SendMessage<T>(T msg, byte[] sendBuffer) where T : struct, ISerializableMsg {
-      if (sendBuffer.Length < msg.GetSerializedSize())
-        throw new MsgPipeException("Send buffer too small");
-
       var msgSize = msg.WriteTo(sendBuffer, 0);
 
       var bytesSent = 0;
