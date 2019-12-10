@@ -8,9 +8,6 @@ using NGIS.Pipe.Server;
 
 namespace NGIS.Session.Server {
   public class ServerSession : IDisposable {
-    private const long KeepAlivePeriod = 0_250;
-    private const long ConnectionLostTime = KeepAlivePeriod * 10;
-
     private readonly byte _playersCount;
     private readonly byte _tps;
 
@@ -99,9 +96,9 @@ namespace NGIS.Session.Server {
     }
 
     private void RemoveDisconnectedClients() {
-      foreach (var client in _clients) {
-        if (!client.Pipe.IsConnected() || client.Pipe.TimeSinceLastReceive > ConnectionLostTime)
-          client.Pipe.Close();
+      foreach (var (pipe, _) in _clients) {
+        if (!pipe.IsConnected() || pipe.IsReceiveTimeout())
+          pipe.Close();
       }
 
       _clients.RemoveAll(c => c.Pipe.Closed);
@@ -110,9 +107,9 @@ namespace NGIS.Session.Server {
     private void SendKeepAliveIsNeed() {
       var keepAlive = new ServerMsgKeepAlive();
 
-      foreach (var client in _clients) {
-        if (client.Pipe.TimeSinceLastSend > KeepAlivePeriod)
-          client.Pipe.WriteToBufferAndSend(keepAlive, _sendBuffer);
+      foreach (var (pipe, _) in _clients) {
+        if (pipe.IsKeepAliveTimeout())
+          pipe.WriteToBufferAndSend(keepAlive, _sendBuffer);
       }
     }
 

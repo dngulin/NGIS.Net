@@ -7,6 +7,8 @@ using NGIS.Serialization;
 namespace NGIS.Pipe {
   public abstract class AbstractMsgPipe {
     private const int SendIterationsLimit = 10;
+    private const int KeepAlivePeriod = 250;
+    private const int ReceiveTimeout = KeepAlivePeriod * 5;
 
     private readonly Socket _socket;
 
@@ -23,8 +25,9 @@ namespace NGIS.Pipe {
       _sendTimer = Stopwatch.StartNew();
       _receiveTimer = Stopwatch.StartNew();
     }
-    public long TimeSinceLastSend => _sendTimer.ElapsedMilliseconds;
-    public long TimeSinceLastReceive => _receiveTimer.ElapsedMilliseconds;
+
+    public bool IsKeepAliveTimeout() => _sendTimer.ElapsedMilliseconds > KeepAlivePeriod;
+    public bool IsReceiveTimeout() => _receiveTimer.ElapsedMilliseconds > ReceiveTimeout;
 
     public bool Closed { get; private set; }
 
