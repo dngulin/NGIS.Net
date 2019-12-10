@@ -5,8 +5,7 @@ using NGIS.Message.Server;
 
 namespace NGIS.Pipe.Server {
   public class ServerSideMsgPipe : AbstractMsgPipe {
-    public ServerSideMsgPipe(Socket socket) : base(socket) {
-    }
+    public ServerSideMsgPipe(Socket socket, int receiveBufferSize) : base(socket, receiveBufferSize) { }
 
     public readonly Queue<ClientMsgId> ReceiveOrder = new Queue<ClientMsgId>(32);
 

@@ -19,14 +19,14 @@ namespace NGIS.Session.Server {
 
     public bool NeedClient => State == SessionState.Preparing && _clients.Count < _playersCount;
 
-    public ServerSession(byte playersCount, byte tps) {
+    public ServerSession(byte playersCount, byte tps, int sendBufferSize) {
       State = SessionState.Preparing;
 
       _playersCount = playersCount;
       _tps = tps;
 
       _clients = new List<(ServerSideMsgPipe, string)>(playersCount);
-      _sendBuffer = new byte[playersCount * 320];
+      _sendBuffer = new byte[sendBufferSize];
     }
 
     public void AddClient(ServerSideMsgPipe pipe, string nickName) {

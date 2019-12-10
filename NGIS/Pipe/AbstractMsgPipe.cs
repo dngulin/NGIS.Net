@@ -12,15 +12,17 @@ namespace NGIS.Pipe {
 
     private readonly Socket _socket;
 
-    private readonly byte[] _buffer = new byte[1024];
+    private readonly byte[] _buffer;
     private int _received;
 
     private readonly Stopwatch _sendTimer;
     private readonly Stopwatch _receiveTimer;
 
-    protected AbstractMsgPipe(Socket socket) {
+    protected AbstractMsgPipe(Socket socket, int receiveBufferSize) {
       _socket = socket;
       _socket.NoDelay = true;
+
+      _buffer = new byte[receiveBufferSize];
 
       _sendTimer = Stopwatch.StartNew();
       _receiveTimer = Stopwatch.StartNew();

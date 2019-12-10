@@ -6,7 +6,7 @@ using NGIS.Session;
 
 namespace NGIS.Pipe.Client {
   public class ClientSideMsgPipe : AbstractMsgPipe {
-    public ClientSideMsgPipe(Socket socket) : base(socket) { }
+    public ClientSideMsgPipe(Socket socket, int receiveBufferSize) : base(socket, receiveBufferSize) { }
 
     public readonly Queue<ServerMsgId> ReceiveOrder = new Queue<ServerMsgId>(32);
 

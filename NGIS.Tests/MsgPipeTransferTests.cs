@@ -24,8 +24,8 @@ namespace NGIS.Tests {
       var clientSocket = new Socket(ip.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
       clientSocket.Connect(serverSocket.LocalEndPoint);
 
-      _serverSidePipe = new ServerSideMsgPipe(serverSocket.Accept());
-      _clientSidePipe = new ClientSideMsgPipe(clientSocket);
+      _serverSidePipe = new ServerSideMsgPipe(serverSocket.Accept(), 64);
+      _clientSidePipe = new ClientSideMsgPipe(clientSocket, 64);
     }
 
     public void Dispose() {
