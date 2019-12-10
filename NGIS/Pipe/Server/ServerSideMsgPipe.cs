@@ -14,7 +14,7 @@ namespace NGIS.Pipe.Server {
     public readonly Queue<ClientMsgInputs> InputMessages = new Queue<ClientMsgInputs>(16);
     public readonly Queue<ClientMsgFinished> FinishedMessages = new Queue<ClientMsgFinished>(1);
 
-    public void WriteToBufferAndSend<T>(T msg, byte[] sendBuffer) where T : struct, IServerSerializableMsg {
+    public void SendMessageUsingBuffer<T>(T msg, byte[] sendBuffer) where T : struct, IServerSerializableMsg {
       SendMessage(msg, sendBuffer);
     }
 

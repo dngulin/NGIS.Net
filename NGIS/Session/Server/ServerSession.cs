@@ -109,7 +109,7 @@ namespace NGIS.Session.Server {
 
       foreach (var (pipe, _) in _clients) {
         if (pipe.IsKeepAliveTimeout())
-          pipe.WriteToBufferAndSend(keepAlive, _sendBuffer);
+          pipe.SendMessageUsingBuffer(keepAlive, _sendBuffer);
       }
     }
 
@@ -119,7 +119,7 @@ namespace NGIS.Session.Server {
 
       for (byte clientIndex = 0; clientIndex < _playersCount; clientIndex++) {
         var startMessage = new ServerMsgStart(seed, players, clientIndex, _tps);
-        _clients[clientIndex].Pipe.WriteToBufferAndSend(startMessage, _sendBuffer);
+        _clients[clientIndex].Pipe.SendMessageUsingBuffer(startMessage, _sendBuffer);
       }
     }
 
@@ -135,7 +135,7 @@ namespace NGIS.Session.Server {
 
       var finishMsg = new ServerMsgFinish(frames, hashes);
       foreach (var client in _clients)
-        client.Pipe.WriteToBufferAndSend(finishMsg, _sendBuffer);
+        client.Pipe.SendMessageUsingBuffer(finishMsg, _sendBuffer);
     }
 
     private void CloseConnections() {
@@ -159,7 +159,7 @@ namespace NGIS.Session.Server {
     private void SafeSendMsgToAllClients<T>(T msg) where T : struct, IServerSerializableMsg {
       foreach (var client in _clients)
         try {
-          client.Pipe.WriteToBufferAndSend(msg, _sendBuffer);
+          client.Pipe.SendMessageUsingBuffer(msg, _sendBuffer);
         }
         catch {
           // ignored
@@ -169,7 +169,7 @@ namespace NGIS.Session.Server {
     private void SendMsgToAllClientsExcept<T>(T msg, byte exceptedIndex) where T : struct, IServerSerializableMsg {
       for (byte clientIndex = 0; clientIndex < _playersCount; clientIndex++) {
         if (clientIndex != exceptedIndex)
-          _clients[clientIndex].Pipe.WriteToBufferAndSend(msg, _sendBuffer);
+          _clients[clientIndex].Pipe.SendMessageUsingBuffer(msg, _sendBuffer);
       }
     }
 

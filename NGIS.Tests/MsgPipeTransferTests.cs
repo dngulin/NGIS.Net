@@ -74,14 +74,14 @@ namespace NGIS.Tests {
         ServerMsgId.Start, ServerMsgId.Inputs, ServerMsgId.Finish
       };
 
-      _serverSidePipe.WriteToBufferAndSend(new ServerMsgKeepAlive(), _sendBuffer);
-      _serverSidePipe.WriteToBufferAndSend(new ServerMsgError(ServerErrorId.InternalError), _sendBuffer);
-      _serverSidePipe.WriteToBufferAndSend(new ServerMsgJoined(), _sendBuffer);
+      _serverSidePipe.SendMessageUsingBuffer(new ServerMsgKeepAlive(), _sendBuffer);
+      _serverSidePipe.SendMessageUsingBuffer(new ServerMsgError(ServerErrorId.InternalError), _sendBuffer);
+      _serverSidePipe.SendMessageUsingBuffer(new ServerMsgJoined(), _sendBuffer);
       _clientSidePipe.ReceiveMessages();
 
-      _serverSidePipe.WriteToBufferAndSend(new ServerMsgStart(0, new []{"foo", "bar"}, 1, 25), _sendBuffer);
-      _serverSidePipe.WriteToBufferAndSend(new ServerMsgInput(3, 2, 1), _sendBuffer);
-      _serverSidePipe.WriteToBufferAndSend(new ServerMsgFinish(new []{0u, 1u}, new []{2, 3}), _sendBuffer);
+      _serverSidePipe.SendMessageUsingBuffer(new ServerMsgStart(0, new []{"foo", "bar"}, 1, 25), _sendBuffer);
+      _serverSidePipe.SendMessageUsingBuffer(new ServerMsgInput(3, 2, 1), _sendBuffer);
+      _serverSidePipe.SendMessageUsingBuffer(new ServerMsgFinish(new []{0u, 1u}, new []{2, 3}), _sendBuffer);
       _clientSidePipe.ReceiveMessages();
 
       Assert.True(_clientSidePipe.ReceiveOrder.Count == msgOrder.Length);
