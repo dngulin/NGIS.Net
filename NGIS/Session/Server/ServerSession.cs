@@ -26,7 +26,7 @@ namespace NGIS.Session.Server {
       _tps = tps;
 
       _clients = new List<(ServerSideMsgPipe, string)>(playersCount);
-      _sendBuffer = new byte[1024];
+      _sendBuffer = new byte[playersCount * 320];
     }
 
     public void AddClient(ServerSideMsgPipe pipe, string nickName) {
