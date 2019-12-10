@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Sockets;
 using NGIS.Message;
+using NGIS.Message.Client;
 using NGIS.Message.Server;
 using NGIS.Pipe.Server;
 
@@ -147,11 +148,26 @@ namespace NGIS.Session.Server {
 
     private void SendReceivedInputs() {
       for (byte clientIndex = 0; clientIndex < _playersCount; clientIndex++) {
-        var (pipe, _) = _clients[clientIndex];
+        var (pipe, nick) = _clients[clientIndex];
 
-        while (pipe.InputMessages.Count > 0) {
-          var msg = pipe.InputMessages.Dequeue().ToServerMsg(clientIndex);
-          SendMsgToAllClientsExcept(msg, clientIndex);
+        while (pipe.ReceiveOrder.Count > 0) {
+          var msgId = pipe.ReceiveOrder.Dequeue();
+          switch (msgId) {
+            case ClientMsgId.KeepAlive:
+              break;
+
+            case ClientMsgId.Inputs:
+              SendMsgToAllClientsExcept(pipe.InputMessages.Dequeue().ToServerMsg(clientIndex), clientIndex);
+              break;
+
+            case ClientMsgId.Finished:
+              if (pipe.FinishedMessages.Count > 1)
+                throw new ProtocolException($"Multiple finish messages received from {nick}!");
+              break;
+
+            default:
+              throw new ProtocolException($"Wrong message ({msgId}) received from {nick}!");
+          }
         }
       }
     }
