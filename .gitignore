@@ -1,0 +1,12 @@
+.idea
+
+NGIS/bin
+NGIS/obj
+
+NGIS.Server/bin
+NGIS.Server/obj
+
+NGIS.Tests/bin
+NGIS.Tests/obj
+
+*.DotSettings.user
