@@ -4,11 +4,17 @@ using Xunit;
 
 namespace NGIS.Tests {
   public class ClientMessageSerializationTests {
+    private static byte[] CreateBuffer<T>(T msg) where T : struct, IClientSerializableMsg {
+      return new byte[msg.GetSerializedSize()];
+    }
+
     [Fact]
     public void ShouldSerializeKeepAlive() {
       var msg = new ClientMsgKeepAlive();
-      var buf = new byte[msg.GetSerializedSize()];
-      msg.WriteTo(buf, 0);
+
+      var buf = CreateBuffer(msg);
+      var written = msg.WriteTo(buf, 0);
+      Assert.True(written == buf.Length);
 
       var idx = 0;
       MsgSerializer.ValidateHeader(buf, (byte) ClientMsgId.KeepAlive, ref idx);
@@ -19,9 +25,11 @@ namespace NGIS.Tests {
     [InlineData("Game Name 2", "Player 2", (ushort) 125)]
     public void ShouldSerializeAndDeserializeJoin(string game, string player, ushort version) {
       var originalMsg = new ClientMsgJoin(game, player, version);
-      var buf = new byte[originalMsg.GetSerializedSize()];
 
-      originalMsg.WriteTo(buf, 0);
+      var buf = CreateBuffer(originalMsg);
+      var written = originalMsg.WriteTo(buf, 0);
+      Assert.True(written == buf.Length);
+
       var restoredMsg = new ClientMsgJoin(buf, 0);
 
       Assert.True(originalMsg.GameName == restoredMsg.GameName);
@@ -34,9 +42,11 @@ namespace NGIS.Tests {
     [InlineData(123456u, 0xFFFFFF7ul)]
     public void ShouldSerializeAndDeserializeInputs(uint frame, ulong inputMask) {
       var originalMsg = new ClientMsgInputs(frame, inputMask);
-      var buf = new byte[originalMsg.GetSerializedSize()];
 
-      originalMsg.WriteTo(buf, 0);
+      var buf = CreateBuffer(originalMsg);
+      var written = originalMsg.WriteTo(buf, 0);
+      Assert.True(written == buf.Length);
+
       var restoredMsg = new ClientMsgInputs(buf, 0);
 
       Assert.True(originalMsg.Frame == restoredMsg.Frame);
@@ -48,9 +58,11 @@ namespace NGIS.Tests {
     [InlineData(2345643u, -987654)]
     public void ShouldSerializeAndDeserializeFinished(uint frame, int stateHash) {
       var originalMsg = new ClientMsgFinished(frame, stateHash);
-      var buf = new byte[originalMsg.GetSerializedSize()];
 
-      originalMsg.WriteTo(buf, 0);
+      var buf = CreateBuffer(originalMsg);
+      var written = originalMsg.WriteTo(buf, 0);
+      Assert.True(written == buf.Length);
+
       var restoredMsg = new ClientMsgFinished(buf, 0);
 
       Assert.True(originalMsg.Frame == restoredMsg.Frame);

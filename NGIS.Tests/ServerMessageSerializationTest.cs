@@ -4,11 +4,17 @@ using Xunit;
 
 namespace NGIS.Tests {
   public class ServerMessageSerializationTest {
+    private static byte[] CreateBuffer<T>(T msg) where T : struct, IServerSerializableMsg {
+      return new byte[msg.GetSerializedSize()];
+    }
+
     [Fact]
     public void ShouldSerializeKeepAlive() {
       var msg = new ServerMsgKeepAlive();
-      var buf = new byte[msg.GetSerializedSize()];
-      msg.WriteTo(buf, 0);
+
+      var buf = CreateBuffer(msg);
+      var written = msg.WriteTo(buf, 0);
+      Assert.True(written == buf.Length);
 
       var idx = 0;
       MsgSerializer.ValidateHeader(buf, (byte) ServerMsgId.KeepAlive, ref idx);
@@ -21,9 +27,11 @@ namespace NGIS.Tests {
     [InlineData(ServerErrorId.ConnectionError)]
     public void ShouldSerializeAndDeserializeError(ServerErrorId errorId) {
       var originalMsg = new ServerMsgError(errorId);
-      var buf = new byte[originalMsg.GetSerializedSize()];
 
-      originalMsg.WriteTo(buf, 0);
+      var buf = CreateBuffer(originalMsg);
+      var written = originalMsg.WriteTo(buf, 0);
+      Assert.True(written == buf.Length);
+
       var restoredMsg = new ServerMsgError(buf, 0);
 
       Assert.True(originalMsg.ErrorId == restoredMsg.ErrorId);
@@ -32,8 +40,10 @@ namespace NGIS.Tests {
     [Fact]
     public void ShouldSerializeJoined() {
       var msg = new ServerMsgJoined();
-      var buf = new byte[msg.GetSerializedSize()];
-      msg.WriteTo(buf, 0);
+
+      var buf = CreateBuffer(msg);
+      var written = msg.WriteTo(buf, 0);
+      Assert.True(written == buf.Length);
 
       var idx = 0;
       MsgSerializer.ValidateHeader(buf, (byte) ServerMsgId.Joined, ref idx);
@@ -44,9 +54,11 @@ namespace NGIS.Tests {
     [InlineData(4578, new [] {"Player C", "Player D"}, 1, 30)]
     public void ShouldSerializeAndDeserializeStart(int seed, string[] players, byte yourIndex, byte tps) {
       var originalMsg = new ServerMsgStart(seed, players, yourIndex, tps);
-      var buf = new byte[originalMsg.GetSerializedSize()];
 
-      originalMsg.WriteTo(buf, 0);
+      var buf = CreateBuffer(originalMsg);
+      var written = originalMsg.WriteTo(buf, 0);
+      Assert.True(written == buf.Length);
+
       var restoredMsg = new ServerMsgStart(buf, 0);
 
       Assert.True(originalMsg.Seed == restoredMsg.Seed);
@@ -63,9 +75,11 @@ namespace NGIS.Tests {
     [InlineData(uint.MaxValue / 7, ulong.MaxValue / 42, 1)]
     public void ShouldSerializeAndDeserializeInputs(uint frame, ulong inputMask, byte playerIndex) {
       var originalMsg = new ServerMsgInput(frame, inputMask, playerIndex);
-      var buf = new byte[originalMsg.GetSerializedSize()];
 
-      originalMsg.WriteTo(buf, 0);
+      var buf = CreateBuffer(originalMsg);
+      var written = originalMsg.WriteTo(buf, 0);
+      Assert.True(written == buf.Length);
+
       var restoredMsg = new ServerMsgInput(buf, 0);
 
       Assert.True(originalMsg.Frame == restoredMsg.Frame);
@@ -78,9 +92,11 @@ namespace NGIS.Tests {
     [InlineData(new uint[] {7, 3, 3, 7}, new [] {4, 5, 6, 7})]
     public void ShouldSerializeAndDeserializeFinish(uint[] frames, int[] hashes) {
       var originalMsg = new ServerMsgFinish(frames, hashes);
-      var buf = new byte[originalMsg.GetSerializedSize()];
 
-      originalMsg.WriteTo(buf, 0);
+      var buf = CreateBuffer(originalMsg);
+      var written = originalMsg.WriteTo(buf, 0);
+      Assert.True(written == buf.Length);
+
       var restoredMsg = new ServerMsgFinish(buf, 0);
 
       Assert.True(originalMsg.Frames.Length == restoredMsg.Frames.Length);
