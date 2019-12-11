@@ -22,8 +22,9 @@ namespace NGIS.Tests {
 
     [Theory]
     [InlineData(ServerErrorId.ProtocolError)]
+    [InlineData(ServerErrorId.InternalError)]
+    [InlineData(ServerErrorId.Incompatible)]
     [InlineData(ServerErrorId.ServerIsBusy)]
-    [InlineData(ServerErrorId.PlayerNameIsBusy)]
     [InlineData(ServerErrorId.ConnectionError)]
     public void ShouldSerializeAndDeserializeError(ServerErrorId errorId) {
       var originalMsg = new ServerMsgError(errorId);

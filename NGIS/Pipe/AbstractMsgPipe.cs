@@ -37,7 +37,7 @@ namespace NGIS.Pipe {
       if (!_socket.Connected || Closed)
         return false;
 
-      return _socket.Available > 0 || !_socket.Poll(1000, SelectMode.SelectRead);
+      return _socket.Available > 0 || !_socket.Poll(500, SelectMode.SelectRead);
     }
 
     public void Close() {
@@ -46,8 +46,8 @@ namespace NGIS.Pipe {
       }
       finally {
         _socket.Close();
+        Closed = true;
       }
-      Closed = true;
     }
 
     public void SendMessageUsingBuffer<TMsg>(TMsg msg, byte[] sendBuffer) where TMsg : struct, TMsgBase {

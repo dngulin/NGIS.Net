@@ -4,8 +4,8 @@ namespace NGIS.Message.Server {
   public enum ServerErrorId : byte {
     InternalError,
     ProtocolError,
+    Incompatible,
     ServerIsBusy,
-    PlayerNameIsBusy,
     ConnectionError
   }
 
