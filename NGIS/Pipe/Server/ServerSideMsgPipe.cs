@@ -4,7 +4,7 @@ using NGIS.Message.Client;
 using NGIS.Message.Server;
 
 namespace NGIS.Pipe.Server {
-  public class ServerSideMsgPipe : AbstractMsgPipe {
+  public class ServerSideMsgPipe : AbstractMsgPipe<IServerSerializableMsg> {
     public ServerSideMsgPipe(Socket socket, int receiveBufferSize) : base(socket, receiveBufferSize) { }
 
     public readonly Queue<ClientMsgId> ReceiveOrder = new Queue<ClientMsgId>(32);
@@ -12,10 +12,6 @@ namespace NGIS.Pipe.Server {
     public readonly Queue<ClientMsgJoin> JoinMessages = new Queue<ClientMsgJoin>(1);
     public readonly Queue<ClientMsgInputs> InputMessages = new Queue<ClientMsgInputs>(16);
     public readonly Queue<ClientMsgFinished> FinishedMessages = new Queue<ClientMsgFinished>(1);
-
-    public void SendMessageUsingBuffer<T>(T msg, byte[] sendBuffer) where T : struct, IServerSerializableMsg {
-      SendMessage(msg, sendBuffer);
-    }
 
     protected override void ReadMsg(byte msgId, byte[] buffer, int offset) {
       var id = (ClientMsgId) msgId;

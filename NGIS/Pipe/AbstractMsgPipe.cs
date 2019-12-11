@@ -5,7 +5,7 @@ using NGIS.Message;
 using NGIS.Serialization;
 
 namespace NGIS.Pipe {
-  public abstract class AbstractMsgPipe {
+  public abstract class AbstractMsgPipe<TMsgBase> where TMsgBase : ISerializableMsg {
     private const int SendIterationsLimit = 10;
     private const int KeepAlivePeriod = 250;
     private const int ReceiveTimeout = KeepAlivePeriod * 5;
@@ -50,7 +50,7 @@ namespace NGIS.Pipe {
       Closed = true;
     }
 
-    protected void SendMessage<T>(T msg, byte[] sendBuffer) where T : struct, ISerializableMsg {
+    public void SendMessageUsingBuffer<TMsg>(TMsg msg, byte[] sendBuffer) where TMsg : struct, TMsgBase {
       var msgSize = msg.WriteTo(sendBuffer, 0);
 
       var bytesSent = 0;

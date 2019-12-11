@@ -5,7 +5,7 @@ using NGIS.Message.Server;
 using NGIS.Session;
 
 namespace NGIS.Pipe.Client {
-  public class ClientSideMsgPipe : AbstractMsgPipe {
+  public class ClientSideMsgPipe : AbstractMsgPipe<IClientSerializableMsg> {
     public ClientSideMsgPipe(Socket socket, int receiveBufferSize) : base(socket, receiveBufferSize) { }
 
     public readonly Queue<ServerMsgId> ReceiveOrder = new Queue<ServerMsgId>(32);
@@ -40,10 +40,6 @@ namespace NGIS.Pipe.Client {
         default:
           throw new ProtocolException($"Unknown message id: {msgId}");
       }
-    }
-
-    public void SendMessageUsingBuffer<T>(T msg, byte[] sendBuffer) where T : struct, IClientSerializableMsg {
-      SendMessage(msg, sendBuffer);
     }
   }
 }
