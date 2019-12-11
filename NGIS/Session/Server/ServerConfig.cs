@@ -1,13 +1,13 @@
 namespace NGIS.Session.Server {
   public class ServerConfig {
-    public string Host;
-    public int Port;
+    public string Host { get; set; }
+    public int Port { get; set; }
 
-    public string Game;
-    public ushort Version;
-    public int MaxSessions;
+    public string Game { get; set; }
+    public ushort Version { get; set; }
 
-    public byte SessionPlayers;
-    public byte TickPerSecond;
+    public int MaxSessions { get; set; }
+    public byte SessionPlayers { get; set; }
+    public byte TickPerSecond { get; set; }
   }
 }

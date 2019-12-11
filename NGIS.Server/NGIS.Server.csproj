@@ -5,4 +5,12 @@
         <OutputType>Exe</OutputType>
     </PropertyGroup>
 
+    <ItemGroup>
+      <PackageReference Include="System.Text.Json" Version="4.7.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\NGIS\NGIS.csproj" />
+    </ItemGroup>
+
 </Project>
