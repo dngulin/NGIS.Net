@@ -17,19 +17,15 @@ namespace NGIS.Session.Server {
 
     public SessionState State { get; private set; }
 
-    public bool IsNeedClient(string nickName) {
-      if (State != SessionState.Preparing)
-        return false;
+    public bool NeedClient => State == SessionState.Preparing && _clients.Count < _playersCount;
 
-      if (_clients.Count >= _playersCount)
-        return false;
-
+    public bool HasClientWithName(string nickName) {
       foreach (var (_, name) in _clients) {
         if (name == nickName)
-          return false;
+          return true;
       }
 
-      return true;
+      return false;
     }
 
     public ServerSession(byte playersCount, byte tps, int sendBufferSize) {
@@ -43,7 +39,7 @@ namespace NGIS.Session.Server {
     }
 
     public void AddClient(ServerSideMsgPipe pipe, string nickName) {
-      if (!IsNeedClient(nickName))
+      if (!NeedClient || HasClientWithName(nickName))
         throw new InvalidOperationException();
 
       _clients.Add((pipe, nickName));

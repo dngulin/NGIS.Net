@@ -116,21 +116,21 @@ namespace NGIS.Session.Server {
     }
 
     private void TryJoinToSession(ServerSideMsgPipe pipe, string nickName) {
-      ServerSession joiningSession = null;
-      foreach (var session in _sessions) {
-        if (!session.IsNeedClient(nickName)) continue;
-        joiningSession = session;
-        break;
-      }
+      var joiningSession = _sessions.FirstOrDefault(s => s.NeedClient);
 
       switch (joiningSession) {
         case null when _sessions.Count >= _maxSessions:
           ClosePipeWithError(pipe, ServerErrorId.ServerIsBusy);
           return;
+
         case null:
           joiningSession = new ServerSession(_sessionPlayers, _tps, 272 * _sessionPlayers);
           _sessions.Add(joiningSession);
           break;
+
+        case ServerSession session when session.HasClientWithName(nickName):
+          ClosePipeWithError(pipe, ServerErrorId.NickIsBusy);
+          return;
       }
 
       pipe.SendMessageUsingBuffer(new ServerMsgJoined(), _sendBuffer);

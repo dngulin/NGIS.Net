@@ -6,6 +6,7 @@ namespace NGIS.Message.Server {
     ProtocolError,
     Incompatible,
     ServerIsBusy,
+    NickIsBusy,
     ConnectionError
   }
 
