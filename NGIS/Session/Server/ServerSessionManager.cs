@@ -133,8 +133,13 @@ namespace NGIS.Session.Server {
           return;
       }
 
-      pipe.SendMessageUsingBuffer(new ServerMsgJoined(), _sendBuffer);
-      joiningSession.AddClient(pipe, nickName);
+      try {
+        pipe.SendMessageUsingBuffer(new ServerMsgJoined(), _sendBuffer);
+        joiningSession.AddClient(pipe, nickName);
+      }
+      catch {
+        ClosePipeWithError(pipe, ServerErrorId.InternalError);
+      }
     }
 
     private void ClosePipeWithError(ServerSideMsgPipe pipe, ServerErrorId error) {
