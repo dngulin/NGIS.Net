@@ -14,17 +14,17 @@ namespace NGIS.Server {
       var configContents = File.ReadAllText(args[0]);
       var serverConfig = JsonSerializer.Deserialize<ServerConfig>(configContents);
 
-      using (var sessionManager = new ServerSessionManager(serverConfig)) {
+      var logger = new ConsoleLogger();
+
+      using (var sessionManager = new ServerSessionManager(serverConfig, logger)) {
         var running = true;
         Console.CancelKeyPress += (sender, eventArgs) => {
           eventArgs.Cancel = true;
           running = false;
         };
 
-        Console.WriteLine($"Running server at {serverConfig.Host}:{serverConfig.Port}...");
         while (running)
           sessionManager.Process();
-        Console.WriteLine("Stopping server...");
       }
 
       return 0;

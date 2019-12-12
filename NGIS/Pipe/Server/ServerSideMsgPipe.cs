@@ -5,13 +5,16 @@ using NGIS.Message.Server;
 
 namespace NGIS.Pipe.Server {
   public class ServerSideMsgPipe : AbstractMsgPipe<IServerSerializableMsg> {
-    public ServerSideMsgPipe(Socket socket, int receiveBufferSize) : base(socket, receiveBufferSize) { }
+    public ServerSideMsgPipe(Socket socket, int receiveBufferSize) : base(socket, receiveBufferSize) {
+      Id = socket.RemoteEndPoint.ToString();
+    }
 
     public readonly Queue<ClientMsgId> ReceiveOrder = new Queue<ClientMsgId>(32);
 
     public readonly Queue<ClientMsgJoin> JoinMessages = new Queue<ClientMsgJoin>(1);
     public readonly Queue<ClientMsgInputs> InputMessages = new Queue<ClientMsgInputs>(16);
     public readonly Queue<ClientMsgFinished> FinishedMessages = new Queue<ClientMsgFinished>(1);
+    public string Id { get; }
 
     protected override void ReadMsg(byte msgId, byte[] buffer, int offset) {
       var id = (ClientMsgId) msgId;

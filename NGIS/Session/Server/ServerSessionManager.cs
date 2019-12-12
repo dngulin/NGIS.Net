@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using NGIS.Logging;
 using NGIS.Message.Client;
 using NGIS.Message.Server;
 using NGIS.Pipe.Server;
@@ -16,6 +17,8 @@ namespace NGIS.Session.Server {
     private readonly byte _sessionPlayers;
     private readonly byte _tps;
 
+    private readonly ILogger _log;
+
     private readonly Socket _serverSocket;
     private readonly byte[] _sendBuffer = new byte[32];
 
@@ -26,13 +29,15 @@ namespace NGIS.Session.Server {
 
     private bool _disposed;
 
-    public ServerSessionManager(ServerConfig config) {
+    public ServerSessionManager(ServerConfig config, ILogger log) {
       _game = config.Game;
       _version = config.Version;
 
       _maxSessions = config.MaxSessions;
       _sessionPlayers = config.SessionPlayers;
       _tps = config.TickPerSecond;
+
+      _log = log;
 
       var ip = Dns.GetHostAddresses(config.Host).First();
       var ep = new IPEndPoint(ip, config.Port);
@@ -44,6 +49,7 @@ namespace NGIS.Session.Server {
       _serverSocket = new Socket(ip.AddressFamily, SocketType.Stream, ProtocolType.Tcp) {NoDelay = true};
       _serverSocket.Bind(ep);
       _serverSocket.Listen(config.SessionPlayers);
+      _log?.Info($"Listening at {ep}...");
     }
 
     public void Process() {
@@ -61,15 +67,21 @@ namespace NGIS.Session.Server {
     }
 
     private void AcceptNewClients() {
-      if (_serverSocket.Poll(1000, SelectMode.SelectRead)) {
-        _joiningPool.Add(new ServerSideMsgPipe(_serverSocket.Accept(), 528));
-      }
+      if (!_serverSocket.Poll(1000, SelectMode.SelectRead))
+        return;
+
+      var pipe = new ServerSideMsgPipe(_serverSocket.Accept(), 528);
+      _joiningPool.Add(pipe);
+
+      _log?.Info($"Add client {pipe.Id} to join pool");
     }
 
     private void CleanupJoiningPool() {
       foreach (var pipe in _joiningPool) {
-        if (!pipe.IsConnected() || pipe.IsReceiveTimeout())
+        if (!pipe.IsConnected() || pipe.IsReceiveTimeout()) {
           pipe.Close();
+          _log?.Warning($"Remove disconnected client {pipe.Id} from join pool");
+        }
       }
 
       _joiningPool.RemoveAll(p => p.Closed);
@@ -80,8 +92,10 @@ namespace NGIS.Session.Server {
         try {
           pipe.ReceiveMessages();
         }
-        catch {
+        catch (Exception e) {
           ClosePipeWithError(pipe, ServerErrorId.InternalError);
+          _log?.Error($"Failed to receive messages from client {pipe.Id}. Connection closed.");
+          _log?.Exception(e);
         }
       }
 
@@ -99,12 +113,14 @@ namespace NGIS.Session.Server {
         var msgId = pipe.ReceiveOrder.Dequeue();
         if (msgId != ClientMsgId.Join || pipe.ReceiveOrder.Count > 0) {
           ClosePipeWithError(pipe, ServerErrorId.ProtocolError);
+          _log?.Error($"Client {pipe.Id} doesn't respect the protocol ({msgId}:{pipe.ReceiveOrder.Count})");
           continue;
         }
 
         var joinMsg = pipe.JoinMessages.Dequeue();
         if (joinMsg.ProtocolVersion != _version || joinMsg.GameName != _game) {
           ClosePipeWithError(pipe, ServerErrorId.Incompatible);
+          _log?.Error($"Client {pipe.Id} is incompatible ({joinMsg.GameName}:{joinMsg.ProtocolVersion})");
           continue;
         }
 
@@ -121,24 +137,30 @@ namespace NGIS.Session.Server {
       switch (joiningSession) {
         case null when _sessions.Count >= _maxSessions:
           ClosePipeWithError(pipe, ServerErrorId.ServerIsBusy);
+          _log?.Error($"Failed to add client {pipe.Id} into session: server is busy");
           return;
 
         case null:
           joiningSession = new ServerSession(_sessionPlayers, _tps, 272 * _sessionPlayers);
           _sessions.Add(joiningSession);
+          _log?.Info("New session created");
           break;
 
         case ServerSession session when session.HasClientWithName(nickName):
           ClosePipeWithError(pipe, ServerErrorId.NickIsBusy);
+          _log?.Error($"Failed to add client {pipe.Id} into session: nickname is busy");
           return;
       }
 
       try {
         pipe.SendMessageUsingBuffer(new ServerMsgJoined(), _sendBuffer);
         joiningSession.AddClient(pipe, nickName);
+        _log?.Error($"Client {pipe.Id} joined session");
       }
-      catch {
+      catch (Exception e) {
         ClosePipeWithError(pipe, ServerErrorId.InternalError);
+        _log?.Error($"Failed to add client {pipe.Id} into session: internal error");
+        _log?.Exception(e);
       }
     }
 
@@ -154,6 +176,8 @@ namespace NGIS.Session.Server {
     public void Dispose() {
       if (_disposed)
         return;
+
+      _log?.Info("Closing all connections...");
 
       _serverSocket?.Dispose();
       _joiningPool.ForEach(p => p.Close());
