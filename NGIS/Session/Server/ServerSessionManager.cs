@@ -46,7 +46,7 @@ namespace NGIS.Session.Server {
       _serverSocket.Listen(config.SessionPlayers);
     }
 
-    public void Porcess() {
+    public void Process() {
       if (_disposed)
         throw new ObjectDisposedException(nameof(ServerSessionManager));
 

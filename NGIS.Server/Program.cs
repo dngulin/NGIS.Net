@@ -23,7 +23,7 @@ namespace NGIS.Server {
 
         Console.WriteLine($"Running server at {serverConfig.Host}:{serverConfig.Port}...");
         while (running)
-          sessionManager.Porcess();
+          sessionManager.Process();
         Console.WriteLine("Stopping server...");
       }
 
