@@ -93,6 +93,7 @@ namespace NGIS.Session.Server {
 
       switch (State) {
         case SessionState.Preparing:
+          CheckPreparingClients();
           if (_clients.Count < _playersCount) {
             SendKeepAliveIfNeed();
             return;
@@ -134,6 +135,26 @@ namespace NGIS.Session.Server {
 
       _clients.RemoveAll(c => c.Pipe.Closed);
     }
+
+    private void CheckPreparingClients() {
+      foreach (var (pipe, nickName) in _clients) {
+        while (pipe.ReceiveOrder.Count > 0) {
+          if (pipe.ReceiveOrder.Dequeue() == ClientMsgId.KeepAlive)
+            continue;
+
+          try {
+            pipe.SendMessageUsingBuffer(new ServerMsgError(ServerErrorId.ProtocolError), _sendBuffer);
+          }
+          finally {
+            pipe.Close();
+            _log?.Warning($"Remove client {pipe.Id} '{nickName}' from session {_id} because of protocol error");
+          }
+        }
+      }
+
+      _clients.RemoveAll(c => c.Pipe.Closed);
+    }
+
 
     private void SendKeepAliveIfNeed() {
       var keepAlive = new ServerMsgKeepAlive();
