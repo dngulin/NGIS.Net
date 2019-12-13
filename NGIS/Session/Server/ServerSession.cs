@@ -94,7 +94,7 @@ namespace NGIS.Session.Server {
       switch (State) {
         case SessionState.Preparing:
           if (_clients.Count < _playersCount) {
-            SendKeepAliveIsNeed();
+            SendKeepAliveIfNeed();
             return;
           }
           SendStart();
@@ -112,7 +112,7 @@ namespace NGIS.Session.Server {
           }
 
           SendReceivedInputs();
-          SendKeepAliveIsNeed();
+          SendKeepAliveIfNeed();
 
           if (_clients.All(c => c.Pipe.FinishedMessages.Count > 0)) {
             SendFinish();
@@ -135,7 +135,7 @@ namespace NGIS.Session.Server {
       _clients.RemoveAll(c => c.Pipe.Closed);
     }
 
-    private void SendKeepAliveIsNeed() {
+    private void SendKeepAliveIfNeed() {
       var keepAlive = new ServerMsgKeepAlive();
 
       foreach (var (pipe, _) in _clients) {
