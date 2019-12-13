@@ -155,13 +155,18 @@ namespace NGIS.Session.Server {
     }
 
     private void SendFinish() {
+      _log?.Info($"Sending finish message for session {_id}...");
       var frames = new uint[_playersCount];
       var hashes = new int[_playersCount];
 
       for (byte clientIndex = 0; clientIndex < _playersCount; clientIndex++) {
-        var msg = _clients[clientIndex].Pipe.FinishedMessages.Dequeue();
+        var (pipe, nickName) = _clients[clientIndex];
+
+        var msg = pipe.FinishedMessages.Dequeue();
         frames[clientIndex] = msg.Frame;
         hashes[clientIndex] = msg.StateHash;
+
+        _log?.Info($"Client {pipe.Id} '{nickName}' finished at {msg.Frame} with state hash {msg.StateHash}");
       }
 
       var finishMsg = new ServerMsgFinish(frames, hashes);
