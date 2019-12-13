@@ -25,6 +25,7 @@ namespace NGIS.Session.Server {
     private readonly List<ServerSideMsgPipe> _joiningPool;
     private readonly Stack<int> _toRemoveFromPool;
 
+    private int _lastSessionId;
     private readonly List<ServerSession> _sessions;
 
     private bool _disposed;
@@ -141,9 +142,8 @@ namespace NGIS.Session.Server {
           return;
 
         case null:
-          joiningSession = new ServerSession(_sessionPlayers, _tps, 272 * _sessionPlayers);
+          joiningSession = new ServerSession(_lastSessionId++, _sessionPlayers, _tps, 272 * _sessionPlayers, _log);
           _sessions.Add(joiningSession);
-          _log?.Info("New session created");
           break;
 
         case ServerSession session when session.HasClientWithName(nickName):

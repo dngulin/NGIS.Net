@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Sockets;
+using NGIS.Logging;
 using NGIS.Message;
 using NGIS.Message.Client;
 using NGIS.Message.Server;
@@ -11,6 +12,9 @@ namespace NGIS.Session.Server {
   public class ServerSession : IDisposable {
     private readonly byte _playersCount;
     private readonly byte _tps;
+
+    private readonly ILogger _log;
+    private readonly string _id;
 
     private readonly List<(ServerSideMsgPipe Pipe, string NickName)> _clients;
     private readonly byte[] _sendBuffer;
@@ -28,14 +32,19 @@ namespace NGIS.Session.Server {
       return false;
     }
 
-    public ServerSession(byte playersCount, byte tps, int sendBufferSize) {
+    public ServerSession(int id, byte playersCount, byte tps, int sendBufferSize, ILogger log) {
       State = SessionState.Preparing;
 
       _playersCount = playersCount;
       _tps = tps;
 
+      _log = log;
+      _id = id.ToString();
+
       _clients = new List<(ServerSideMsgPipe, string)>(playersCount);
       _sendBuffer = new byte[sendBufferSize];
+
+      _log?.Info($"Created session {_id}");
     }
 
     public void AddClient(ServerSideMsgPipe pipe, string nickName) {
@@ -43,6 +52,7 @@ namespace NGIS.Session.Server {
         throw new InvalidOperationException();
 
       _clients.Add((pipe, nickName));
+      _log?.Info($"Client {pipe.Id} '{nickName}' joined to session {_id}");
     }
 
     public void Process() {
@@ -50,25 +60,31 @@ namespace NGIS.Session.Server {
         return;
 
       ServerErrorId? error = null;
+      Exception exception = null;
       try {
         ProcessState();
       }
-      catch (ProtocolException) {
+      catch (ProtocolException e) {
+        exception = e;
         error = ServerErrorId.ProtocolError;
       }
-      catch (SocketException) {
+      catch (SocketException e) {
+        exception = e;
         error = ServerErrorId.ConnectionError;
       }
-      catch (Exception) {
+      catch (Exception e) {
+        exception = e;
         error = ServerErrorId.InternalError;
       }
-      finally {
-        if (error != null) {
-          SafeSendMsgToAllClients(new ServerMsgError(error.Value));
-          CloseConnections();
-          State = SessionState.Closed;
-        }
-      }
+
+      if (error == null) return;
+
+      SafeSendMsgToAllClients(new ServerMsgError(error.Value));
+      CloseConnections();
+      State = SessionState.Closed;
+
+      _log?.Error($"Session {_id} closed with error id {error.Value}");
+      _log?.Exception(exception);
     }
 
     private void ProcessState() {
@@ -83,6 +99,7 @@ namespace NGIS.Session.Server {
           }
           SendStart();
           State = SessionState.Active;
+          _log?.Info($"Session {_id} started");
           break;
 
         case SessionState.Active:
@@ -90,6 +107,7 @@ namespace NGIS.Session.Server {
             SafeSendMsgToAllClients(new ServerMsgError(ServerErrorId.ConnectionError));
             CloseConnections();
             State = SessionState.Closed;
+            _log?.Error($"Session {_id} closed with connection error");
             break;
           }
 
@@ -100,15 +118,18 @@ namespace NGIS.Session.Server {
             SendFinish();
             CloseConnections();
             State = SessionState.Closed;
+            _log?.Info($"Session {_id} finished and closed");
           }
           break;
       }
     }
 
     private void RemoveDisconnectedClients() {
-      foreach (var (pipe, _) in _clients) {
-        if (!pipe.IsConnected() || pipe.IsReceiveTimeout())
+      foreach (var (pipe, nickName) in _clients) {
+        if (!pipe.IsConnected() || pipe.IsReceiveTimeout()) {
           pipe.Close();
+          _log?.Warning($"Remove disconnected client {pipe.Id} '{nickName}' from session {_id}");
+        }
       }
 
       _clients.RemoveAll(c => c.Pipe.Closed);
@@ -205,6 +226,7 @@ namespace NGIS.Session.Server {
       SafeSendMsgToAllClients(new ServerMsgError(ServerErrorId.ConnectionError));
       CloseConnections();
       State = SessionState.Closed;
+      _log?.Warning($"Session {_id} closed externally");
     }
   }
 }
