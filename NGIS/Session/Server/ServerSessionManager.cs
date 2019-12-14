@@ -64,7 +64,7 @@ namespace NGIS.Session.Server {
       ProcessJoiningPool();
 
       _sessions.ForEach(s => s.Process());
-      _sessions.RemoveAll(s => s.State == SessionState.Closed);
+      _sessions.RemoveAll(s => s.State == ServerSessionState.Closed);
     }
 
     private void AcceptNewClients() {
