@@ -67,13 +67,13 @@ namespace NGIS.Session.Client {
 
       switch (State) {
         case ClientSessionState.Joining:
-          var joined = ProcessJoiningMessages();
+          var joined = ProcessJoiningStateMessages();
           if (joined) State = ClientSessionState.WaitingPlayers;
           break;
 
         case ClientSessionState.WaitingPlayers:
           TrySendKeepAlive();
-          var optMsgStart = ProcessWaitingMessages();
+          var optMsgStart = ProcessWaitingStateMessages();
           if (optMsgStart.HasValue) {
             State = ClientSessionState.Active;
             _gameClient.SessionStarted(optMsgStart.Value);
@@ -81,7 +81,7 @@ namespace NGIS.Session.Client {
           break;
 
         case ClientSessionState.Active:
-          var optMsgFinish = ProcessActiveMessages();
+          var optMsgFinish = ProcessActiveStateMessages();
           if (optMsgFinish.HasValue) {
             CloseSession();
             _gameClient.SessionFinished(optMsgFinish.Value);
@@ -103,7 +103,7 @@ namespace NGIS.Session.Client {
         _pipe.SendMessageUsingBuffer(new ClientMsgKeepAlive(), _sendBuffer);
     }
 
-    private bool ProcessJoiningMessages() {
+    private bool ProcessJoiningStateMessages() {
       var joined = false;
 
       while (_pipe.ReceiveOrder.Count > 0) {
@@ -124,7 +124,7 @@ namespace NGIS.Session.Client {
       return joined;
     }
 
-    private ServerMsgStart? ProcessWaitingMessages() {
+    private ServerMsgStart? ProcessWaitingStateMessages() {
       ServerMsgStart? msgStart = null;
 
       while (_pipe.ReceiveOrder.Count > 0) {
@@ -148,7 +148,7 @@ namespace NGIS.Session.Client {
       return msgStart;
     }
 
-    private ServerMsgFinish? ProcessActiveMessages() {
+    private ServerMsgFinish? ProcessActiveStateMessages() {
       ServerMsgFinish? msgFinish = null;
 
       while (_pipe.ReceiveOrder.Count > 0) {
