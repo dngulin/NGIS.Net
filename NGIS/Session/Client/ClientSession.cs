@@ -10,16 +10,17 @@ namespace NGIS.Session.Client {
     private readonly IGameClient _gameClient;
 
     private readonly ClientSideMsgPipe _pipe;
-    private readonly byte[] _sendBuffer = new byte[272 * 2];
+    private readonly byte[] _sendBuffer;
 
-    public ClientSession(string host, int port, IGameClient gameClient) {
+    public ClientSession(ClientConfig config, IGameClient gameClient) {
       _gameClient = gameClient;
+      _sendBuffer = new byte[528];
 
       var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-      socket.Connect(host, port);
+      socket.Connect(config.Host, config.Port);
 
-      _pipe = new ClientSideMsgPipe(socket, 528);
-      _pipe.SendMessageUsingBuffer(new ClientMsgJoin("Game", "Player", 42), _sendBuffer);
+      _pipe = new ClientSideMsgPipe(socket, 272 * config.MaxPlayers);
+      _pipe.SendMessageUsingBuffer(new ClientMsgJoin(config.Game, config.Version, config.PlayerName), _sendBuffer);
 
       State = ClientSessionState.Joining;
     }

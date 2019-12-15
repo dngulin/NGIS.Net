@@ -24,7 +24,7 @@ namespace NGIS.Tests {
     [InlineData("Game Name 1", "Player 1", (ushort) 0)]
     [InlineData("Game Name 2", "Player 2", (ushort) 125)]
     public void ShouldSerializeAndDeserializeJoin(string game, string player, ushort version) {
-      var originalMsg = new ClientMsgJoin(game, player, version);
+      var originalMsg = new ClientMsgJoin(game, version, player);
 
       var buf = CreateBuffer(originalMsg);
       var written = originalMsg.WriteTo(buf, 0);
@@ -32,9 +32,9 @@ namespace NGIS.Tests {
 
       var restoredMsg = new ClientMsgJoin(buf, 0);
 
-      Assert.True(originalMsg.GameName == restoredMsg.GameName);
+      Assert.True(originalMsg.Game == restoredMsg.Game);
       Assert.True(originalMsg.PlayerName == restoredMsg.PlayerName);
-      Assert.True(originalMsg.ProtocolVersion == restoredMsg.ProtocolVersion);
+      Assert.True(originalMsg.Version == restoredMsg.Version);
     }
 
     [Theory]

@@ -119,9 +119,9 @@ namespace NGIS.Session.Server {
         }
 
         var joinMsg = pipe.JoinMessages.Dequeue();
-        if (joinMsg.ProtocolVersion != _version || joinMsg.GameName != _game) {
+        if (joinMsg.Version != _version || joinMsg.Game != _game) {
           ClosePipeWithError(pipe, ServerErrorId.Incompatible);
-          _log?.Error($"Client {pipe.Id} is incompatible ({joinMsg.GameName}:{joinMsg.ProtocolVersion})");
+          _log?.Error($"Client {pipe.Id} is incompatible ({joinMsg.Game}:{joinMsg.Version})");
           continue;
         }
 

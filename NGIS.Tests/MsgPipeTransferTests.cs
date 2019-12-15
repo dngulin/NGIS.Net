@@ -38,7 +38,7 @@ namespace NGIS.Tests {
       var msgOrder = new[] {ClientMsgId.KeepAlive, ClientMsgId.Join, ClientMsgId.Inputs, ClientMsgId.Finished};
 
       _clientSidePipe.SendMessageUsingBuffer(new ClientMsgKeepAlive(), _sendBuffer);
-      _clientSidePipe.SendMessageUsingBuffer(new ClientMsgJoin("game", "player", 0), _sendBuffer);
+      _clientSidePipe.SendMessageUsingBuffer(new ClientMsgJoin("game", 0, "player"), _sendBuffer);
       _serverSidePipe.ReceiveMessages();
 
       _clientSidePipe.SendMessageUsingBuffer(new ClientMsgInputs(1, 2), _sendBuffer);
