@@ -13,6 +13,7 @@ namespace NGIS.Session.Client {
 
     void SessionClosedByServerError(ServerErrorId errorId);
     void SessionClosedByConnectionError();
+    void SessionClosedByProtocolError();
     void SessionClosedByInternalError();
   }
 }

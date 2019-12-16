@@ -45,6 +45,10 @@ namespace NGIS.Session.Client {
         exception = e;
         handler = () => _gameClient.SessionClosedByConnectionError();
       }
+      catch (ProtocolException e) {
+        exception = e;
+        handler = () => _gameClient.SessionClosedByProtocolError();
+      }
       catch (Exception e) {
         exception = e;
         handler = () => _gameClient.SessionClosedByInternalError();
