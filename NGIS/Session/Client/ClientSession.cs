@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Net.Sockets;
+using NGIS.Message;
 using NGIS.Message.Client;
 using NGIS.Message.Server;
 using NGIS.Pipe.Client;
@@ -14,12 +15,12 @@ namespace NGIS.Session.Client {
 
     public ClientSession(ClientConfig config, IGameClient gameClient) {
       _gameClient = gameClient;
-      _sendBuffer = new byte[528];
+      _sendBuffer = new byte[MsgConstants.MaxClientMsgSize];
 
       var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
       socket.Connect(config.Host, config.Port);
 
-      _pipe = new ClientSideMsgPipe(socket, 272 * config.MaxPlayers);
+      _pipe = new ClientSideMsgPipe(socket, config.MaxPlayers * MsgConstants.MaxServerMsgPartSize);
       _pipe.SendMessageUsingBuffer(new ClientMsgJoin(config.Game, config.Version, config.PlayerName), _sendBuffer);
 
       State = ClientSessionState.Joining;
