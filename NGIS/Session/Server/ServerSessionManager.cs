@@ -157,7 +157,6 @@ namespace NGIS.Session.Server {
       try {
         pipe.SendMessageUsingBuffer(new ServerMsgJoined(), _sendBuffer);
         joiningSession.AddClient(pipe, nickName);
-        _log?.Error($"Client {pipe.Id} joined session");
       }
       catch (Exception e) {
         ClosePipeWithError(pipe, ServerErrorId.InternalError);
