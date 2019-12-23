@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Net.Sockets;
+using NGIS.Logging;
 using NGIS.Message;
 using NGIS.Message.Client;
 using NGIS.Message.Server;
@@ -9,17 +10,21 @@ using NGIS.Pipe.Client;
 namespace NGIS.Session.Client {
   public class ClientSession : IDisposable {
     private readonly IGameClient _gameClient;
+    private readonly ILogger _log;
 
     private readonly ClientSideMsgPipe _pipe;
     private readonly byte[] _sendBuffer;
 
-    public ClientSession(ClientConfig config, IGameClient gameClient) {
+    public ClientSession(ClientConfig config, IGameClient gameClient, ILogger log) {
       _gameClient = gameClient;
+      _log = log;
       _sendBuffer = new byte[MsgConstants.MaxClientMsgSize];
 
+      _log?.Info($"Connecting to {config.Host}:{config.Port}...");
       var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
       socket.Connect(config.Host, config.Port);
 
+      _log?.Info($"Joining as '{config.PlayerName}' [game: {config.Game}, version: {config.Version}]...");
       _pipe = new ClientSideMsgPipe(socket, config.MaxPlayers * MsgConstants.MaxServerMsgPartSize);
       _pipe.SendMessageUsingBuffer(new ClientMsgJoin(config.Game, config.Version, config.PlayerName), _sendBuffer);
 
@@ -57,14 +62,18 @@ namespace NGIS.Session.Client {
 
       if (exception == null) return;
 
+      _log?.Error("An exception thrown during session processing!");
+      _log?.Exception(exception);
+
       CloseSession();
-      handler.Invoke();
+      handler();
     }
 
     private void ProcessState() {
       _pipe.ReceiveMessages();
 
       if (!_pipe.IsConnected() || _pipe.IsReceiveTimeout()) {
+        _log?.Error("Connection lost!");
         CloseSession();
         _gameClient.SessionClosedByConnectionError();
         return;
@@ -73,7 +82,10 @@ namespace NGIS.Session.Client {
       switch (State) {
         case ClientSessionState.Joining:
           var joined = ProcessJoiningStateMessages();
-          if (joined) State = ClientSessionState.WaitingPlayers;
+          if (joined) {
+            State = ClientSessionState.WaitingPlayers;
+            _log.Info("Joined! Waining for players...");
+          }
           break;
 
         case ClientSessionState.WaitingPlayers:
@@ -81,6 +93,7 @@ namespace NGIS.Session.Client {
           var optMsgStart = ProcessWaitingStateMessages();
           if (optMsgStart.HasValue) {
             State = ClientSessionState.Active;
+            _log.Info("Game started!");
             _gameClient.SessionStarted(optMsgStart.Value);
           }
           break;
@@ -89,6 +102,7 @@ namespace NGIS.Session.Client {
           var optMsgFinish = ProcessActiveStateMessages();
           if (optMsgFinish.HasValue) {
             CloseSession();
+            _log.Info("Game finished!");
             _gameClient.SessionFinished(optMsgFinish.Value);
             return;
           }
@@ -199,6 +213,7 @@ namespace NGIS.Session.Client {
     private void CloseSession() {
       _pipe.Close();
       State = ClientSessionState.Closed;
+      _log?.Info("Session closed");
     }
   }
 }
