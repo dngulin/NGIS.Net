@@ -43,11 +43,13 @@ namespace NGIS.Pipe {
     public void Close() {
       try {
         _socket.Shutdown(SocketShutdown.Both);
-      }
-      finally {
         _socket.Close();
-        Closed = true;
       }
+      catch {
+        // ignored
+      }
+
+      Closed = true;
     }
 
     public void SendMessageUsingBuffer<TMsg>(TMsg msg, byte[] sendBuffer) where TMsg : struct, TMsgBase {
