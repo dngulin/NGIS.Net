@@ -123,29 +123,24 @@ namespace NGIS.Session.Client {
     }
 
     private bool ProcessJoiningStateMessages() {
-      var joined = false;
-
       while (_pipe.ReceiveOrder.Count > 0) {
         var msgId = _pipe.ReceiveOrder.Dequeue();
         switch (msgId) {
           case ServerMsgId.Joined:
-            if (joined) throw new ProtocolException("Join message received twice");
-            joined = true;
-            break;
+            return true;
 
           case ServerMsgId.Error:
             throw new ServerErrorException(_pipe.ErrorMessages.Dequeue().ErrorId);
+
           default:
             throw new ProtocolException($"Wrong message ({msgId}) is received during join state");
         }
       }
 
-      return joined;
+      return false;
     }
 
     private ServerMsgStart? ProcessWaitingStateMessages() {
-      ServerMsgStart? msgStart = null;
-
       while (_pipe.ReceiveOrder.Count > 0) {
         var msgId = _pipe.ReceiveOrder.Dequeue();
         switch (msgId) {
@@ -153,9 +148,7 @@ namespace NGIS.Session.Client {
             break;
 
           case ServerMsgId.Start:
-            if (msgStart.HasValue) throw new ProtocolException("Start message received twice");
-            msgStart = _pipe.StartMessages.Dequeue();
-            break;
+            return _pipe.StartMessages.Dequeue();
 
           case ServerMsgId.Error:
             throw new ServerErrorException(_pipe.ErrorMessages.Dequeue().ErrorId);
@@ -164,7 +157,7 @@ namespace NGIS.Session.Client {
         }
       }
 
-      return msgStart;
+      return null;
     }
 
     private ServerMsgFinish? ProcessActiveStateMessages() {
