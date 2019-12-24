@@ -42,13 +42,13 @@ namespace NGIS.Pipe {
 
     public void Close() {
       try {
-        _socket.Shutdown(SocketShutdown.Both);
-        _socket.Close();
+        _socket.Shutdown(SocketShutdown.Send);
       }
       catch {
         // ignored
       }
 
+      _socket.Close();
       Closed = true;
     }
 
