@@ -80,7 +80,7 @@ namespace NGIS.Session.Server {
 
     private void CleanupJoiningPool() {
       foreach (var pipe in _joiningPool) {
-        if (!pipe.IsConnected() || pipe.IsReceiveTimeout()) {
+        if (!pipe.IsConnected || pipe.IsReceiveTimeout()) {
           pipe.Close();
           _log?.Warning($"Remove disconnected client {pipe.Id} from join pool");
         }

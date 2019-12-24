@@ -127,7 +127,7 @@ namespace NGIS.Session.Server {
 
     private void RemoveDisconnectedClients() {
       foreach (var (pipe, nickName) in _clients) {
-        if (!pipe.IsConnected() || pipe.IsReceiveTimeout()) {
+        if (!pipe.IsConnected || pipe.IsReceiveTimeout()) {
           pipe.Close();
           _log?.Warning($"Remove disconnected client {pipe.Id} '{nickName}' from session {_id}");
         }

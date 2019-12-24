@@ -72,7 +72,7 @@ namespace NGIS.Session.Client {
     private void ProcessState() {
       _pipe.ReceiveMessages();
 
-      if (!_pipe.IsConnected() || _pipe.IsReceiveTimeout()) {
+      if (!_pipe.IsConnected || _pipe.IsReceiveTimeout()) {
         _log?.Error("Connection lost!");
         CloseSession();
         _gameClient.SessionClosedByConnectionError();

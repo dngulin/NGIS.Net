@@ -33,12 +33,7 @@ namespace NGIS.Pipe {
 
     public bool Closed { get; private set; }
 
-    public bool IsConnected() {
-      if (!_socket.Connected || Closed)
-        return false;
-
-      return _socket.Available > 0 || !_socket.Poll(500, SelectMode.SelectRead);
-    }
+    public bool IsConnected => !Closed && _socket.Connected;
 
     public void Close() {
       try {
