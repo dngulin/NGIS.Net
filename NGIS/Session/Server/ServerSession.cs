@@ -59,32 +59,29 @@ namespace NGIS.Session.Server {
       if (State == ServerSessionState.Closed)
         return;
 
-      ServerErrorId? error = null;
-      Exception exception = null;
+      (Exception CatchedException, ServerErrorId Id) error = default;
+
       try {
         ProcessState();
       }
-      catch (ProtocolException e) {
-        exception = e;
-        error = ServerErrorId.ProtocolError;
+      catch (ProtocolException exception) {
+        error = (exception, ServerErrorId.ProtocolError);
       }
-      catch (SocketException e) {
-        exception = e;
-        error = ServerErrorId.ConnectionError;
+      catch (SocketException exception) {
+        error = (exception, ServerErrorId.ConnectionError);
       }
-      catch (Exception e) {
-        exception = e;
-        error = ServerErrorId.InternalError;
+      catch (Exception exception) {
+        error = (exception, ServerErrorId.InternalError);
       }
 
-      if (error == null) return;
+      if (error.CatchedException == null) return;
 
-      SafeSendMsgToAllClients(new ServerMsgError(error.Value));
+      SafeSendMsgToAllClients(new ServerMsgError(error.Id));
       CloseConnections();
       State = ServerSessionState.Closed;
 
-      _log?.Error($"Session {_id} closed with error id {error.Value}");
-      _log?.Exception(exception);
+      _log?.Error($"Session {_id} closed with error id {error.Id}");
+      _log?.Exception(error.CatchedException);
     }
 
     private void ProcessState() {
