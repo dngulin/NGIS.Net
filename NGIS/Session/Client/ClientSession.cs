@@ -9,14 +9,14 @@ using NGIS.Pipe.Client;
 
 namespace NGIS.Session.Client {
   public class ClientSession : IDisposable {
-    private readonly IGameClient _gameClient;
+    private readonly IClientSessionWorker _worker;
     private readonly ILogger _log;
 
     private readonly ClientSideMsgPipe _pipe;
     private readonly byte[] _sendBuffer;
 
-    public ClientSession(ClientConfig config, IGameClient gameClient, ILogger log) {
-      _gameClient = gameClient;
+    public ClientSession(ClientConfig config, IClientSessionWorker worker, ILogger log) {
+      _worker = worker;
       _log = log;
       _sendBuffer = new byte[MsgConstants.MaxClientMsgSize];
 
@@ -37,36 +37,31 @@ namespace NGIS.Session.Client {
       if (State == ClientSessionState.Closed)
         return;
 
-      Exception exception = null;
-      Action handler = null;
+      (Exception CatchedException, ClientSessionError Id, ServerErrorId? ServerErrorId) error = default;
 
       try {
         ProcessState();
       }
-      catch (ServerErrorException e) {
-        exception = e;
-        handler = () => _gameClient.SessionClosedByServerError(e.Error);
+      catch (ServerErrorException exception) {
+        error = (exception, ClientSessionError.ServerError, exception.Error);
       }
-      catch (SocketException e) {
-        exception = e;
-        handler = () => _gameClient.SessionClosedByConnectionError();
+      catch (SocketException exception) {
+        error = (exception, ClientSessionError.ConnectionError, null);
       }
-      catch (ProtocolException e) {
-        exception = e;
-        handler = () => _gameClient.SessionClosedByProtocolError();
+      catch (ProtocolException exception) {
+        error = (exception, ClientSessionError.ProtocolError, null);
       }
-      catch (Exception e) {
-        exception = e;
-        handler = () => _gameClient.SessionClosedByInternalError();
+      catch (Exception exception) {
+        error = (exception, ClientSessionError.InternalError, null);
       }
 
-      if (exception == null) return;
+      if (error.CatchedException == null) return;
 
       _log?.Error("An exception thrown during session processing!");
-      _log?.Exception(exception);
+      _log?.Exception(error.CatchedException);
 
       CloseSession();
-      handler();
+      _worker.SessionClosedWithError(error.Id, error.ServerErrorId);
     }
 
     private void ProcessState() {
@@ -75,7 +70,7 @@ namespace NGIS.Session.Client {
       if (!_pipe.IsConnected || _pipe.IsReceiveTimeout()) {
         _log?.Error("Connection lost!");
         CloseSession();
-        _gameClient.SessionClosedByConnectionError();
+        _worker.SessionClosedWithError(ClientSessionError.ConnectionError);
         return;
       }
 
@@ -94,7 +89,7 @@ namespace NGIS.Session.Client {
           if (optMsgStart.HasValue) {
             State = ClientSessionState.Active;
             _log.Info("Game started!");
-            _gameClient.SessionStarted(optMsgStart.Value);
+            _worker.SessionStarted(optMsgStart.Value);
           }
           break;
 
@@ -103,11 +98,11 @@ namespace NGIS.Session.Client {
           if (optMsgFinish.HasValue) {
             CloseSession();
             _log.Info("Game finished!");
-            _gameClient.SessionFinished(optMsgFinish.Value);
+            _worker.SessionFinished(optMsgFinish.Value);
             return;
           }
 
-          var (clientInputs, clientFinish) = _gameClient.Process();
+          var (clientInputs, clientFinish) = _worker.Process();
           SendMessages(clientInputs, clientFinish);
           TrySendKeepAlive();
           break;
@@ -170,7 +165,7 @@ namespace NGIS.Session.Client {
             break;
 
           case ServerMsgId.Inputs:
-            _gameClient.InputReceived(_pipe.InputMessages.Dequeue());
+            _worker.InputReceived(_pipe.InputMessages.Dequeue());
             break;
 
           case ServerMsgId.Finish:
