@@ -80,6 +80,7 @@ namespace NGIS.Session.Client {
           if (joined) {
             State = ClientSessionState.WaitingPlayers;
             _log.Info("Joined! Waining for players...");
+            _worker.JoinedToSession();
           }
           break;
 
