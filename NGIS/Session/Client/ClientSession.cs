@@ -25,7 +25,6 @@ namespace NGIS.Session.Client {
 
     private async void Connect(ClientConfig config) {
       _log?.Info($"Connecting to {config.Host}:{config.Port}...");
-      _worker.ConnectingToServer();
 
       var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
       try {
@@ -35,6 +34,7 @@ namespace NGIS.Session.Client {
         _log?.Error("Connection failed!");
         _log?.Exception(e);
         socket.Dispose();
+        _worker.ConnectionFailed();
         return;
       }
 
