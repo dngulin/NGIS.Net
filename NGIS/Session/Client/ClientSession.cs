@@ -79,7 +79,7 @@ namespace NGIS.Session.Client {
           var joined = ProcessJoiningStateMessages();
           if (joined) {
             State = ClientSessionState.WaitingPlayers;
-            _log.Info("Joined! Waining for players...");
+            _log?.Info("Joined! Waining for players...");
             _worker.JoinedToSession();
           }
           break;
@@ -89,7 +89,7 @@ namespace NGIS.Session.Client {
           var optMsgStart = ProcessWaitingStateMessages();
           if (optMsgStart.HasValue) {
             State = ClientSessionState.Active;
-            _log.Info("Game started!");
+            _log?.Info("Game started!");
             _worker.SessionStarted(optMsgStart.Value);
           }
           break;
@@ -98,7 +98,7 @@ namespace NGIS.Session.Client {
           var optMsgFinish = ProcessActiveStateMessages();
           if (optMsgFinish.HasValue) {
             CloseSession();
-            _log.Info("Game finished!");
+            _log?.Info("Game finished!");
             _worker.SessionFinished(optMsgFinish.Value);
             return;
           }
