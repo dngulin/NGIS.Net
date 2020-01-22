@@ -15,6 +15,8 @@ namespace NGIS.Session.Client {
     private readonly byte[] _sendBuffer;
     private ClientSideMsgPipe _pipe;
 
+    private Socket _connectingSocket;
+
     public ClientSession(ClientConfig config, IClientSessionWorker worker, ILogger log) {
       _worker = worker;
       _log = log;
@@ -25,29 +27,29 @@ namespace NGIS.Session.Client {
 
     private async void Connect(ClientConfig config) {
       _log?.Info($"Connecting to {config.Host}:{config.Port}...");
+      _connectingSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
-      var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
       try {
-        await socket.ConnectAsync(config.Host, config.Port);
+        await _connectingSocket.ConnectAsync(config.Host, config.Port);
       }
       catch (Exception e) {
         _log?.Error("Connection failed!");
         _log?.Exception(e);
-        socket.Dispose();
         _worker.ConnectionFailed();
         return;
       }
 
-      Join(socket, config);
+      Join(config);
     }
 
-    private void Join(Socket socket, ClientConfig config) {
+    private void Join(ClientConfig config) {
       _log?.Info($"Joining as '{config.PlayerName}' [game: {config.Game}, version: {config.Version}]...");
       _worker.JoiningToSession();
 
       try {
-        _pipe = new ClientSideMsgPipe(socket, config.MaxPlayers * MsgConstants.MaxServerMsgPartSize);
         State = ClientSessionState.Joining;
+        _pipe = new ClientSideMsgPipe(_connectingSocket, config.MaxPlayers * MsgConstants.MaxServerMsgPartSize);
+        _connectingSocket = null;
         _pipe.SendMessageUsingBuffer(new ClientMsgJoin(config.Game, config.Version, config.PlayerName), _sendBuffer);
       }
       catch (Exception e) {
@@ -221,15 +223,15 @@ namespace NGIS.Session.Client {
         _pipe.SendMessageUsingBuffer(result.Value, _sendBuffer);
     }
 
-    public void Dispose() {
+    public void Dispose() => CloseSession();
+
+    private void CloseSession() {
+      _pipe?.Close();
+      _connectingSocket?.Close();
+
       if (State == ClientSessionState.Closed)
         return;
 
-      CloseSession();
-    }
-
-    private void CloseSession() {
-      _pipe.Close();
       State = ClientSessionState.Closed;
       _log?.Info("Session closed");
     }
