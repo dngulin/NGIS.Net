@@ -12,23 +12,52 @@ namespace NGIS.Session.Client {
     private readonly IClientSessionWorker _worker;
     private readonly ILogger _log;
 
-    private readonly ClientSideMsgPipe _pipe;
     private readonly byte[] _sendBuffer;
+    private ClientSideMsgPipe _pipe;
 
     public ClientSession(ClientConfig config, IClientSessionWorker worker, ILogger log) {
       _worker = worker;
       _log = log;
       _sendBuffer = new byte[MsgConstants.MaxClientMsgSize];
 
+      Connect(config);
+    }
+
+    private async void Connect(ClientConfig config) {
       _log?.Info($"Connecting to {config.Host}:{config.Port}...");
+      _worker.ConnectingToServer();
+
       var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-      socket.Connect(config.Host, config.Port);
+      try {
+        await socket.ConnectAsync(config.Host, config.Port);
+      }
+      catch (Exception e) {
+        _log?.Error("Connection failed!");
+        _log?.Exception(e);
+        socket.Dispose();
+        return;
+      }
 
+      Join(socket, config);
+    }
+
+    private void Join(Socket socket, ClientConfig config) {
       _log?.Info($"Joining as '{config.PlayerName}' [game: {config.Game}, version: {config.Version}]...");
-      _pipe = new ClientSideMsgPipe(socket, config.MaxPlayers * MsgConstants.MaxServerMsgPartSize);
-      _pipe.SendMessageUsingBuffer(new ClientMsgJoin(config.Game, config.Version, config.PlayerName), _sendBuffer);
+      _worker.JoiningToSession();
 
-      State = ClientSessionState.Joining;
+      try {
+        _pipe = new ClientSideMsgPipe(socket, config.MaxPlayers * MsgConstants.MaxServerMsgPartSize);
+        State = ClientSessionState.Joining;
+        _pipe.SendMessageUsingBuffer(new ClientMsgJoin(config.Game, config.Version, config.PlayerName), _sendBuffer);
+      }
+      catch (Exception e) {
+        _log?.Error("Join failed!");
+        _log?.Exception(e);
+
+        CloseSession();
+        var error = e is SocketException ? ClientSessionError.ConnectionError : ClientSessionError.InternalError;
+        _worker.SessionClosedWithError(error);
+      }
     }
 
     public ClientSessionState State { get; private set; }
