@@ -13,53 +13,21 @@ namespace NGIS.Session.Client {
     private readonly ILogger _log;
 
     private readonly byte[] _sendBuffer;
-    private ClientSideMsgPipe _pipe;
-
-    private Socket _connectingSocket;
+    private readonly ClientSideMsgPipe _pipe;
 
     public ClientSession(ClientConfig config, IClientSessionWorker worker, ILogger log) {
       _worker = worker;
       _log = log;
       _sendBuffer = new byte[MsgConstants.MaxClientMsgSize];
 
-      Connect(config);
-    }
-
-    private async void Connect(ClientConfig config) {
       _log?.Info($"Connecting to {config.Host}:{config.Port}...");
-      _connectingSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+      var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+      socket.Connect(config.Host, config.Port);
 
-      try {
-        await _connectingSocket.ConnectAsync(config.Host, config.Port);
-      }
-      catch (Exception e) {
-        _log?.Error("Connection failed!");
-        _log?.Exception(e);
-        _worker.ConnectionFailed();
-        return;
-      }
-
-      Join(config);
-    }
-
-    private void Join(ClientConfig config) {
       _log?.Info($"Joining as '{config.PlayerName}' [game: {config.Game}, version: {config.Version}]...");
-      _worker.JoiningToSession();
-
-      try {
-        State = ClientSessionState.Joining;
-        _pipe = new ClientSideMsgPipe(_connectingSocket, config.MaxPlayers * MsgConstants.MaxServerMsgPartSize);
-        _connectingSocket = null;
-        _pipe.SendMessageUsingBuffer(new ClientMsgJoin(config.Game, config.Version, config.PlayerName), _sendBuffer);
-      }
-      catch (Exception e) {
-        _log?.Error("Join failed!");
-        _log?.Exception(e);
-
-        CloseSession();
-        var error = e is SocketException ? ClientSessionError.ConnectionError : ClientSessionError.InternalError;
-        _worker.SessionClosedWithError(error);
-      }
+      _pipe = new ClientSideMsgPipe(socket, config.MaxPlayers * MsgConstants.MaxServerMsgPartSize);
+      State = ClientSessionState.Joining;
+      _pipe.SendMessageUsingBuffer(new ClientMsgJoin(config.Game, config.Version, config.PlayerName), _sendBuffer);
     }
 
     public ClientSessionState State { get; private set; }
@@ -226,12 +194,10 @@ namespace NGIS.Session.Client {
     public void Dispose() => CloseSession();
 
     private void CloseSession() {
-      _pipe?.Close();
-      _connectingSocket?.Close();
-
       if (State == ClientSessionState.Closed)
         return;
 
+      _pipe.Close();
       State = ClientSessionState.Closed;
       _log?.Info("Session closed");
     }

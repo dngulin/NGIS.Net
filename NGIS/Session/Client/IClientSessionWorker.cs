@@ -4,9 +4,6 @@ using NGIS.Message.Server;
 
 namespace NGIS.Session.Client {
   public interface IClientSessionWorker {
-    void ConnectionFailed();
-    void JoiningToSession();
-
     void JoinedToSession();
     void SessionStarted(ServerMsgStart msgStart);
 
