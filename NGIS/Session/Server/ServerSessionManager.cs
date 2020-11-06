@@ -148,7 +148,7 @@ namespace NGIS.Session.Server {
           _sessions.Add(joiningSession);
           break;
 
-        case ServerSession session when session.HasClientWithName(nickName):
+        case {} session when session.HasClientWithName(nickName):
           ClosePipeWithError(pipe, ServerErrorId.NickIsBusy);
           _log?.Error($"Failed to add client {pipe.Id} into session: nickname is busy");
           return;
