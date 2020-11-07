@@ -44,19 +44,19 @@ namespace NGIS.Session.Client {
         return ProcessState();
       }
       catch (ServerErrorException e) {
-        result = ProcessingResult.Error(ClientSessionError.ServerError, e.Error);
+        result = ProcessingResult.Error(SessionError.ServerError, e.Error);
         _log?.Exception(e);
       }
       catch (SocketException e) {
-        result = ProcessingResult.Error(ClientSessionError.ConnectionError);
+        result = ProcessingResult.Error(SessionError.ConnectionError);
         _log?.Exception(e);
       }
       catch (ProtocolException e) {
-        result = ProcessingResult.Error(ClientSessionError.ProtocolError);
+        result = ProcessingResult.Error(SessionError.ProtocolError);
         _log?.Exception(e);
       }
       catch (Exception e) {
-        result = ProcessingResult.Error(ClientSessionError.InternalError);
+        result = ProcessingResult.Error(SessionError.InternalError);
         _log?.Exception(e);
       }
 
@@ -70,7 +70,7 @@ namespace NGIS.Session.Client {
       if (!_pipe.IsConnected || _pipe.IsReceiveTimeout()) {
         _log?.Error("Connection lost!");
         CloseSession();
-        return ProcessingResult.Error(ClientSessionError.ConnectionError);
+        return ProcessingResult.Error(SessionError.ConnectionError);
       }
 
       switch (State) {
@@ -182,7 +182,7 @@ namespace NGIS.Session.Client {
       return msgFinish;
     }
 
-    public ClientSessionError? SendMessages(Queue<ClientMsgInputs> inputs, ClientMsgFinished? result) {
+    public SessionError? SendMessages(Queue<ClientMsgInputs> inputs, ClientMsgFinished? result) {
       try {
         while (inputs.Count > 0)
           _pipe.SendMessageUsingBuffer(inputs.Dequeue(), _sendBuffer);
@@ -192,11 +192,11 @@ namespace NGIS.Session.Client {
       }
       catch (SocketException e) {
         _log?.Exception(e);
-        return ClientSessionError.ConnectionError;
+        return SessionError.ConnectionError;
       }
       catch (Exception e) {
         _log?.Exception(e);
-        return ClientSessionError.InternalError;
+        return SessionError.InternalError;
       }
 
       return null;

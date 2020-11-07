@@ -1,5 +1,5 @@
 namespace NGIS.Session.Client {
-  public enum ClientSessionError {
+  public enum SessionError {
     InternalError,
     ConnectionError,
     ProtocolError,

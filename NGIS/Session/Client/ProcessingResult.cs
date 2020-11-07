@@ -14,11 +14,11 @@ namespace NGIS.Session.Client {
 
     public readonly ResultType Type;
 
-    private ClientSessionError? _error;
+    private SessionError? _error;
     private ServerMsgStart? _msgStart;
     private ServerMsgFinish? _msgFinish;
 
-    public ClientSessionError ClientSessionError => _error ?? throw new InvalidOperationException();
+    public SessionError SessionError => _error ?? throw new InvalidOperationException();
     public ServerMsgStart StartMessage => _msgStart ?? throw new InvalidOperationException();
     public ServerMsgFinish FinishMessage => _msgFinish ?? throw new InvalidOperationException();
 
@@ -37,7 +37,7 @@ namespace NGIS.Session.Client {
       return new ProcessingResult(ResultType.None);
     }
 
-    public static ProcessingResult Error(ClientSessionError error, ServerErrorId? serverErrorId = null) {
+    public static ProcessingResult Error(SessionError error, ServerErrorId? serverErrorId = null) {
       return new ProcessingResult(ResultType.Error) {_error = error, _serverErrorId = serverErrorId};
     }
 
