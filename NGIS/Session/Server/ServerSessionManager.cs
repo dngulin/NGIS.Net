@@ -41,7 +41,7 @@ namespace NGIS.Session.Server {
 
       _log = log;
 
-      var ip = Dns.GetHostAddresses(config.Host).First();
+      var ip = Dns.GetHostAddresses(config.Host).First(a => a.AddressFamily == AddressFamily.InterNetwork);
       var ep = new IPEndPoint(ip, config.Port);
 
       _sessions = new List<ServerSession>(config.MaxSessions);
