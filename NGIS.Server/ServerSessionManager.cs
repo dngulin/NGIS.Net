@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using NGIS.Logging;
 using NGIS.Message.Client;
 using NGIS.Message.Server;
 using NGIS.Pipe.Server;
@@ -18,7 +17,7 @@ namespace NGIS.Server {
     private readonly byte _sessionPlayers;
     private readonly byte _tps;
 
-    private readonly ILogger _log;
+    private readonly ConsoleLogger _log;
 
     private readonly Socket _serverSocket;
     private readonly byte[] _sendBuffer = new byte[4];
@@ -31,7 +30,7 @@ namespace NGIS.Server {
 
     private bool _disposed;
 
-    public ServerSessionManager(ServerConfig config, ILogger log) {
+    public ServerSessionManager(ServerConfig config, ConsoleLogger log) {
       _game = config.Game;
       _version = config.Version;
 

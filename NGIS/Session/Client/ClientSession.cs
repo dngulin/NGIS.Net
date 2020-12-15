@@ -8,22 +8,22 @@ using NGIS.Pipe.Client;
 
 namespace NGIS.Session.Client {
   public class ClientSession : IDisposable {
-    private readonly ILogger _log;
+    private readonly IClientSessionLogger _log;
 
     private readonly byte[] _sendBuffer;
     private readonly ClientSideMsgPipe _pipe;
 
     private readonly Queue<ServerMsgInput> _receivedInputs = new Queue<ServerMsgInput>(16);
 
-    public ClientSession(ClientConfig config, ILogger log) {
+    public ClientSession(ClientConfig config, IClientSessionLogger log) {
       _log = log;
       _sendBuffer = new byte[1024];
 
-      _log?.Info($"Connecting to {config.Host}:{config.Port}...");
+      _log?.Connecting(config.Host, config.Port);
       var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp) {NoDelay = true};
       socket.Connect(config.Host, config.Port);
 
-      _log?.Info($"Joining as '{config.PlayerName}' [game: {config.Game}, version: {config.Version}]...");
+      _log?.Joining(config.PlayerName, config.Game, config.Version);
       _pipe = new ClientSideMsgPipe(socket, config.MaxPlayers * 512);
       State = ClientSessionState.Joining;
       _pipe.SendMessageUsingBuffer(new ClientMsgJoin(config.Game, config.Version, config.PlayerName), _sendBuffer);
@@ -44,19 +44,19 @@ namespace NGIS.Session.Client {
       }
       catch (ServerErrorException e) {
         result = ProcessingResult.Error(SessionError.ServerError, e.Error);
-        _log?.Exception(e);
+        _log?.FailedToProcessSession(e);
       }
       catch (SocketException e) {
         result = ProcessingResult.Error(SessionError.ConnectionError);
-        _log?.Exception(e);
+        _log?.FailedToProcessSession(e);
       }
       catch (ProtocolException e) {
         result = ProcessingResult.Error(SessionError.ProtocolError);
-        _log?.Exception(e);
+        _log?.FailedToProcessSession(e);
       }
       catch (Exception e) {
         result = ProcessingResult.Error(SessionError.InternalError);
-        _log?.Exception(e);
+        _log?.FailedToProcessSession(e);
       }
 
       CloseSession();
@@ -67,7 +67,7 @@ namespace NGIS.Session.Client {
       _pipe.ReceiveMessages();
 
       if (!_pipe.IsConnected || _pipe.IsReceiveTimeout()) {
-        _log?.Error("Connection lost!");
+        _log?.ConnectionLost();
         CloseSession();
         return ProcessingResult.Error(SessionError.ConnectionError);
       }
@@ -77,7 +77,7 @@ namespace NGIS.Session.Client {
           var joined = ProcessJoiningStateMessages();
           if (joined) {
             State = ClientSessionState.WaitingPlayers;
-            _log?.Info("Joined! Waining for players...");
+            _log?.Joined();
             return ProcessingResult.Joined();
           }
           break;
@@ -87,7 +87,7 @@ namespace NGIS.Session.Client {
           var optMsgStart = ProcessWaitingStateMessages();
           if (optMsgStart.HasValue) {
             State = ClientSessionState.Active;
-            _log?.Info("Game started!");
+            _log?.GameStarted();
             return ProcessingResult.Started(optMsgStart.Value);
           }
           break;
@@ -96,7 +96,7 @@ namespace NGIS.Session.Client {
           var optMsgFinish = ProcessActiveStateMessages();
           if (optMsgFinish.HasValue) {
             CloseSession();
-            _log?.Info("Game finished!");
+            _log?.GameFinished();
             return ProcessingResult.Finished(optMsgFinish.Value);
           }
 
@@ -190,11 +190,11 @@ namespace NGIS.Session.Client {
           _pipe.SendMessageUsingBuffer(result.Value, _sendBuffer);
       }
       catch (SocketException e) {
-        _log?.Exception(e);
+        _log?.FailedToSendMessages(e);
         return SessionError.ConnectionError;
       }
       catch (Exception e) {
-        _log?.Exception(e);
+        _log?.FailedToSendMessages(e);
         return SessionError.InternalError;
       }
 
@@ -209,7 +209,7 @@ namespace NGIS.Session.Client {
 
       _pipe.Close();
       State = ClientSessionState.Closed;
-      _log?.Info("Session closed");
+      _log?.SessionClosed();
     }
   }
 }

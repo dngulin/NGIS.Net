@@ -13,7 +13,7 @@ namespace NGIS.Session.Server {
     private readonly byte _playersCount;
     private readonly byte _tps;
 
-    private readonly ILogger _log;
+    private readonly IServerSessionLogger _log;
     private readonly string _id;
 
     private readonly List<(ServerSideMsgPipe Pipe, string NickName)> _clients;
@@ -32,7 +32,7 @@ namespace NGIS.Session.Server {
       return false;
     }
 
-    public ServerSession(int id, byte playersCount, byte tps, int sendBufferSize, ILogger log) {
+    public ServerSession(int id, byte playersCount, byte tps, int sendBufferSize, IServerSessionLogger log) {
       State = ServerSessionState.Preparing;
 
       _playersCount = playersCount;
@@ -44,7 +44,7 @@ namespace NGIS.Session.Server {
       _clients = new List<(ServerSideMsgPipe, string)>(playersCount);
       _sendBuffer = new byte[sendBufferSize];
 
-      _log?.Info($"Created session {_id}");
+      _log?.SessionCreated(_id);
     }
 
     public void AddClient(ServerSideMsgPipe pipe, string nickName) {
@@ -52,7 +52,7 @@ namespace NGIS.Session.Server {
         throw new InvalidOperationException();
 
       _clients.Add((pipe, nickName));
-      _log?.Info($"Client {pipe.Id} '{nickName}' joined to session {_id}");
+      _log?.ClientJoined(_id, pipe.Id, nickName);
     }
 
     public void Process() {
@@ -80,8 +80,7 @@ namespace NGIS.Session.Server {
       CloseConnections();
       State = ServerSessionState.Closed;
 
-      _log?.Error($"Session {_id} closed with error id {error.Id}");
-      _log?.Exception(error.CatchedException);
+      _log?.SessionClosedWithError(_id, error.Id, error.CatchedException);
     }
 
     private void ProcessState() {
@@ -97,7 +96,7 @@ namespace NGIS.Session.Server {
           }
           SendStart();
           State = ServerSessionState.Active;
-          _log?.Info($"Session {_id} started");
+          _log?.SessionStarted(_id);
           break;
 
         case ServerSessionState.Active:
@@ -105,7 +104,7 @@ namespace NGIS.Session.Server {
             SafeSendMsgToAllClients(new ServerMsgError(ServerErrorId.ConnectionError));
             CloseConnections();
             State = ServerSessionState.Closed;
-            _log?.Error($"Session {_id} closed with connection error");
+            _log?.SessionClosedWithConnectionError(_id);
             break;
           }
 
@@ -116,7 +115,7 @@ namespace NGIS.Session.Server {
             SendFinish();
             CloseConnections();
             State = ServerSessionState.Closed;
-            _log?.Info($"Session {_id} finished and closed");
+            _log?.SessionFinished(_id);
           }
           break;
       }
@@ -126,7 +125,7 @@ namespace NGIS.Session.Server {
       foreach (var (pipe, nickName) in _clients) {
         if (!pipe.IsConnected || pipe.IsReceiveTimeout()) {
           pipe.Close();
-          _log?.Warning($"Remove disconnected client {pipe.Id} '{nickName}' from session {_id}");
+          _log?.ClintRemovedByTimeout(_id, pipe.Id, nickName);
         }
       }
 
@@ -144,7 +143,7 @@ namespace NGIS.Session.Server {
           }
           finally {
             pipe.Close();
-            _log?.Warning($"Remove client {pipe.Id} '{nickName}' from session {_id} because of protocol error");
+            _log?.ClientRemovedByProtocolError(_id, pipe.Id, nickName);
           }
         }
       }
@@ -173,7 +172,7 @@ namespace NGIS.Session.Server {
     }
 
     private void SendFinish() {
-      _log?.Info($"Sending finish message for session {_id}...");
+      _log?.SendingFinish(_id);
       var frames = new uint[_playersCount];
       var hashes = new int[_playersCount];
 
@@ -184,7 +183,7 @@ namespace NGIS.Session.Server {
         frames[clientIndex] = msg.Frame;
         hashes[clientIndex] = msg.StateHash;
 
-        _log?.Info($"Client {pipe.Id} '{nickName}' finished at {msg.Frame} with state hash {msg.StateHash}");
+        _log?.FinishMessageSent(_id, pipe.Id, nickName, msg.Frame, msg.StateHash);
       }
 
       var finishMsg = new ServerMsgFinish(frames, hashes);
@@ -249,7 +248,7 @@ namespace NGIS.Session.Server {
       SafeSendMsgToAllClients(new ServerMsgError(ServerErrorId.ConnectionError));
       CloseConnections();
       State = ServerSessionState.Closed;
-      _log?.Warning($"Session {_id} closed externally");
+      _log?.SessionClosed(_id);
     }
   }
 }
