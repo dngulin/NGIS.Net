@@ -4,12 +4,12 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using NGIS.Logging;
-using NGIS.Message;
 using NGIS.Message.Client;
 using NGIS.Message.Server;
 using NGIS.Pipe.Server;
+using NGIS.Session.Server;
 
-namespace NGIS.Session.Server {
+namespace NGIS.Server {
   public class ServerSessionManager: IDisposable {
     private readonly string _game;
     private readonly uint _version;
@@ -72,7 +72,7 @@ namespace NGIS.Session.Server {
       if (!_serverSocket.Poll(1000, SelectMode.SelectRead))
         return;
 
-      var pipe = new ServerSideMsgPipe(_serverSocket.Accept(), MsgConstants.MaxClientMsgSize);
+      var pipe = new ServerSideMsgPipe(_serverSocket.Accept(), 1024);
       _joiningPool.Add(pipe);
 
       _log?.Info($"Add client {pipe.Id} to join pool");
@@ -143,7 +143,7 @@ namespace NGIS.Session.Server {
           return;
 
         case null:
-          var sendBufferSize = _sessionPlayers * MsgConstants.MaxServerMsgPartSize;
+          var sendBufferSize = _sessionPlayers * 512;
           joiningSession = new ServerSession(_lastSessionId++, _sessionPlayers, _tps, sendBufferSize, _log);
           _sessions.Add(joiningSession);
           break;

@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Net.Sockets;
 using NGIS.Logging;
-using NGIS.Message;
 using NGIS.Message.Client;
 using NGIS.Message.Server;
 using NGIS.Pipe.Client;
@@ -18,14 +17,14 @@ namespace NGIS.Session.Client {
 
     public ClientSession(ClientConfig config, ILogger log) {
       _log = log;
-      _sendBuffer = new byte[MsgConstants.MaxClientMsgSize];
+      _sendBuffer = new byte[1024];
 
       _log?.Info($"Connecting to {config.Host}:{config.Port}...");
       var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp) {NoDelay = true};
       socket.Connect(config.Host, config.Port);
 
       _log?.Info($"Joining as '{config.PlayerName}' [game: {config.Game}, version: {config.Version}]...");
-      _pipe = new ClientSideMsgPipe(socket, config.MaxPlayers * MsgConstants.MaxServerMsgPartSize);
+      _pipe = new ClientSideMsgPipe(socket, config.MaxPlayers * 512);
       State = ClientSessionState.Joining;
       _pipe.SendMessageUsingBuffer(new ClientMsgJoin(config.Game, config.Version, config.PlayerName), _sendBuffer);
     }
