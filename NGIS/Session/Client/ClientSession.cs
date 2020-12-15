@@ -21,7 +21,7 @@ namespace NGIS.Session.Client {
       _sendBuffer = new byte[MsgConstants.MaxClientMsgSize];
 
       _log?.Info($"Connecting to {config.Host}:{config.Port}...");
-      var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+      var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp) {NoDelay = true};
       socket.Connect(config.Host, config.Port);
 
       _log?.Info($"Joining as '{config.PlayerName}' [game: {config.Game}, version: {config.Version}]...");
