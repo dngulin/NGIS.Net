@@ -10,6 +10,8 @@ using NGIS.Pipe.Server;
 
 namespace NGIS.Session.Server {
   public class ServerSession : IDisposable {
+    private readonly Random _random;
+
     private readonly byte _playersCount;
     private readonly byte _tps;
 
@@ -32,8 +34,10 @@ namespace NGIS.Session.Server {
       return false;
     }
 
-    public ServerSession(int id, byte playersCount, byte tps, int sendBufferSize, IServerSessionLogger log) {
+    public ServerSession(Random random, int id, byte playersCount, byte tps, int sendBufferSize, IServerSessionLogger log) {
       State = ServerSessionState.Preparing;
+
+      _random = random;
 
       _playersCount = playersCount;
       _tps = tps;
@@ -162,7 +166,7 @@ namespace NGIS.Session.Server {
     }
 
     private void SendStart() {
-      var seed = new Random().Next();
+      var seed = _random.Next();
       var players = _clients.Select(c => c.NickName).ToArray();
 
       for (byte clientIndex = 0; clientIndex < _playersCount; clientIndex++) {

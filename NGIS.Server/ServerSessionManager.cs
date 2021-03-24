@@ -29,6 +29,7 @@ namespace NGIS.Server {
     private readonly List<ServerSession> _sessions;
 
     private bool _disposed;
+    private readonly Random _random = new Random();
 
     public ServerSessionManager(ServerConfig config, ConsoleLogger log) {
       _game = config.Game;
@@ -143,7 +144,7 @@ namespace NGIS.Server {
 
         case null:
           var sendBufferSize = _sessionPlayers * 512;
-          joiningSession = new ServerSession(_lastSessionId++, _sessionPlayers, _tps, sendBufferSize, _log);
+          joiningSession = new ServerSession(_random, _lastSessionId++, _sessionPlayers, _tps, sendBufferSize, _log);
           _sessions.Add(joiningSession);
           break;
 
